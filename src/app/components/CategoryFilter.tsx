@@ -28,8 +28,8 @@ export default function CategoryFilter({ defaultValue, categories }: CategoryFil
         onClick={() => handleCategoryClick('all')}
         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
           defaultValue === 'all'
-            ? 'bg-blue-600 text-white dark:bg-blue-500'
-            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
+            ? 'bg-primary text-white shadow-lg shadow-primary/30'
+            : 'bg-white dark:bg-dark-100 text-gray-700 dark:text-gray-300 hover:bg-primary/10 hover:text-primary border border-gray-200 dark:border-dark-200'
         }`}
       >
         All
@@ -40,8 +40,8 @@ export default function CategoryFilter({ defaultValue, categories }: CategoryFil
           onClick={() => handleCategoryClick(category.id)}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
             defaultValue === category.id
-              ? 'bg-blue-600 text-white dark:bg-blue-500'
-              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
+              ? 'bg-primary text-white shadow-lg shadow-primary/30'
+              : 'bg-white dark:bg-dark-100 text-gray-700 dark:text-gray-300 hover:bg-primary/10 hover:text-primary border border-gray-200 dark:border-dark-200'
           }`}
         >
           {category.name}

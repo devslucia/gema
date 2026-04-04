@@ -18,11 +18,11 @@ export default function ProductList({ products, categories }: ProductListProps) 
     const category = categories.find(c => c.id === categoryId)
     const colorIndex = categories.indexOf(category!) % 5
     const colors = [
-      'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-      'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-      'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-      'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
+      'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary-100',
+      'bg-secondary/20 text-secondary dark:bg-secondary/30 dark:text-secondary-100',
+      'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary-100',
+      'bg-secondary/20 text-secondary dark:bg-secondary/30 dark:text-secondary-100',
+      'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary-100',
     ]
     return colors[colorIndex] || colors[0]
   }
@@ -40,12 +40,12 @@ export default function ProductList({ products, categories }: ProductListProps) 
       {products.map((product) => (
         <div
           key={product.id}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 p-6 border border-gray-100 dark:border-gray-700"
+          className="bg-white dark:bg-dark-100 rounded-xl shadow-md hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 p-6 border border-gray-100 dark:border-dark-200 hover:border-primary/50"
         >
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
             {product.name}
           </h3>
-          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-3">
+          <p className="text-2xl font-bold text-primary mb-3">
             {formatPriceARS(product.price)}
           </p>
           <span

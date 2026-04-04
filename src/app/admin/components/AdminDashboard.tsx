@@ -40,11 +40,11 @@ export default function AdminDashboard({
     const category = categories.find(c => c.id === categoryId)
     const colorIndex = categories.indexOf(category!) % 5
     const colors = [
-      'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-      'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-      'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-      'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
+      'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary-100',
+      'bg-secondary/20 text-secondary dark:bg-secondary/30 dark:text-secondary-100',
+      'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary-100',
+      'bg-secondary/20 text-secondary dark:bg-secondary/30 dark:text-secondary-100',
+      'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary-100',
     ]
     return colors[colorIndex] || colors[0]
   }
@@ -152,7 +152,7 @@ export default function AdminDashboard({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-dark">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
@@ -160,17 +160,17 @@ export default function AdminDashboard({
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Products</h2>
               <button
                 onClick={openAddModal}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors shadow-lg shadow-primary/30"
               >
                 <Plus className="w-4 h-4" />
                 Add Product
               </button>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-dark-100 rounded-xl shadow overflow-hidden border border-primary/10 dark:border-dark-200">
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-200">
+                  <thead className="bg-gray-50 dark:bg-dark-200">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Name
@@ -186,13 +186,13 @@ export default function AdminDashboard({
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  <tbody className="divide-y divide-gray-200 dark:divide-dark-200">
                     {productList.map((product) => (
-                      <tr key={product.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <tr key={product.id} className="hover:bg-gray-50 dark:hover:bg-dark-200/50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                           {product.name}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary">
                           {formatPriceARS(product.price)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -203,13 +203,13 @@ export default function AdminDashboard({
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                           <button
                             onClick={() => openEditModal(product)}
-                            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mr-4"
+                            className="text-primary hover:text-primary/70 mr-4"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => handleProductDelete(product.id)}
-                            className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                            className="text-red-500 hover:text-red-400"
                           >
                             Delete
                           </button>
@@ -231,21 +231,21 @@ export default function AdminDashboard({
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Categories</h2>
               <button
                 onClick={() => setIsCategoryModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/90 text-white rounded-lg transition-colors shadow-lg shadow-secondary/30"
               >
                 <Plus className="w-4 h-4" />
                 Add
               </button>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden border border-gray-200 dark:border-gray-700">
-              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+            <div className="bg-white dark:bg-dark-100 rounded-xl shadow overflow-hidden border border-secondary/10 dark:border-dark-200">
+              <ul className="divide-y divide-gray-200 dark:divide-dark-200">
                 {categories.map((category) => (
-                  <li key={category.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                  <li key={category.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-dark-200/50 transition-colors">
                     <span className="text-sm text-gray-900 dark:text-white">{category.name}</span>
                     <button
                       onClick={() => handleCategoryDelete(category.id)}
-                      className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                      className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -264,7 +264,7 @@ export default function AdminDashboard({
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-xl border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-dark-100 rounded-xl p-6 max-w-md w-full shadow-xl border border-primary/20 dark:border-dark-200">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 {editingProduct ? 'Edit Product' : 'Add Product'}
@@ -280,7 +280,7 @@ export default function AdminDashboard({
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-dark-200 rounded-lg bg-white dark:bg-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
                   required
                 />
               </div>
@@ -292,7 +292,7 @@ export default function AdminDashboard({
                   min="0"
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-dark-200 rounded-lg bg-white dark:bg-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
                   required
                 />
               </div>
@@ -301,7 +301,7 @@ export default function AdminDashboard({
                 <select
                   value={formData.category_id}
                   onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-dark-200 rounded-lg bg-white dark:bg-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">Select category</option>
                   {categories.map((cat) => (
@@ -313,14 +313,14 @@ export default function AdminDashboard({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
                 >
                   {loading ? 'Saving...' : editingProduct ? 'Update' : 'Add'}
                 </button>
                 <button
                   type="button"
                   onClick={closeProductModal}
-                  className="flex-1 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 font-medium rounded-lg transition-colors"
+                  className="flex-1 py-2.5 bg-gray-200 dark:bg-dark-200 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-dark-300 font-medium rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
@@ -332,7 +332,7 @@ export default function AdminDashboard({
 
       {isCategoryModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-xl border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-dark-100 rounded-xl p-6 max-w-md w-full shadow-xl border border-secondary/20 dark:border-dark-200">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Add Category</h2>
               <button onClick={() => setIsCategoryModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -347,7 +347,7 @@ export default function AdminDashboard({
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   placeholder="e.g., Electronics"
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-dark-200 rounded-lg bg-white dark:bg-dark text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-secondary"
                   required
                 />
               </div>
@@ -355,14 +355,14 @@ export default function AdminDashboard({
                 <button
                   type="submit"
                   disabled={loading || !newCategoryName.trim()}
-                  className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-secondary hover:bg-secondary/90 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
                 >
                   {loading ? 'Adding...' : 'Add Category'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsCategoryModalOpen(false)}
-                  className="flex-1 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 font-medium rounded-lg transition-colors"
+                  className="flex-1 py-2.5 bg-gray-200 dark:bg-dark-200 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-dark-300 font-medium rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
