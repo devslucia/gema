@@ -21,3 +21,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
 }
 
 export { Toaster }
+
+// Export toast functions for use in other components
+export { toast } from 'sonner'

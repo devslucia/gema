@@ -18,8 +18,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "GEMA - Product Catalog",
-  description: "Product catalog store",
+  title: "GEMA - Catálogo de Productos",
+  description: "Tienda de catálogo de productos",
   icons: {
     icon: '/logo.png',
   },
@@ -37,11 +37,13 @@ export default async function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 dark:bg-dark text-gray-900 dark:text-gray-100`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark`}
       >
         <ThemeProvider>
           <Navbar isAuthenticated={isAuthenticated} />
-          {children}
+          <main id="main-content" role="main" className="min-h-screen">
+            {children}
+          </main>
           <Toaster />
         </ThemeProvider>
       </body>

@@ -11,17 +11,17 @@ interface ProductListProps {
 
 function ProductCardSkeleton() {
   return (
-    <div className="bg-white dark:bg-dark-100 rounded-xl shadow-md p-6 border border-gray-100 dark:border-dark-200 animate-pulse">
-      <div className="h-5 bg-gray-200 dark:bg-dark-200 rounded w-3/4 mb-3" />
-      <div className="h-8 bg-gray-200 dark:bg-dark-200 rounded w-1/2 mb-3" />
-      <div className="h-6 bg-gray-200 dark:bg-dark-200 rounded w-24" />
+    <div className="bg-surface-light dark:bg-dark-100 rounded-xl shadow-md p-6 border border-surface-light dark:border-dark-200 animate-pulse">
+      <div className="h-5 bg-surface-light dark:bg-dark-200 rounded w-3/4 mb-3" />
+      <div className="h-8 bg-surface-light dark:bg-dark-200 rounded w-1/2 mb-3" />
+      <div className="h-6 bg-surface-light dark:bg-dark-200 rounded w-24" />
     </div>
   )
 }
 
 function ProductListSkeleton() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" aria-label="Cargando productos...">
       {[...Array(8)].map((_, i) => (
         <ProductCardSkeleton key={i} />
       ))}
@@ -55,26 +55,31 @@ export default function ProductList({ products, categories, isLoading }: Product
 
   if (products.length === 0) {
     return (
-      <div className="text-center py-16">
+      <div className="text-center py-16" role="status" aria-live="polite">
         <div className="flex justify-center mb-4">
-          <div className="p-4 rounded-full bg-gray-100 dark:bg-dark-200">
-            <Package className="w-12 h-12 text-gray-400" />
+          <div className="p-4 rounded-full bg-surface-light dark:bg-dark-100">
+            <Package className="w-12 h-12 text-text-secondary-light dark:text-text-secondary-dark" aria-hidden="true" />
           </div>
         </div>
-        <p className="text-gray-500 dark:text-gray-400 text-lg">No se encontraron productos</p>
-        <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">Intenta con otros términos de búsqueda</p>
+        <p className="text-text-secondary-light dark:text-text-secondary-dark text-lg">No se encontraron productos</p>
+        <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm mt-2">Intenta con otros términos de búsqueda</p>
       </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div 
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+      role="list"
+      aria-label="Lista de productos"
+    >
       {products.map((product) => (
-        <div
+        <article
           key={product.id}
-          className="bg-white dark:bg-dark-100 rounded-xl shadow-md hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 p-6 border border-gray-100 dark:border-dark-200 hover:border-primary/50"
+          className="bg-surface-light dark:bg-dark-100 rounded-xl shadow-md hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 p-6 border border-surface-light dark:border-dark-200 hover:border-primary/50"
+          role="listitem"
         >
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
+          <h3 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark mb-2 line-clamp-2">
             {product.name}
           </h3>
           <p className="text-2xl font-bold text-primary mb-3">
@@ -85,7 +90,7 @@ export default function ProductList({ products, categories, isLoading }: Product
           >
             {getCategoryName(product.category_id)}
           </span>
-        </div>
+        </article>
       ))}
     </div>
   )

@@ -23,14 +23,19 @@ export default function CategoryFilter({ defaultValue, categories }: CategoryFil
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div 
+      className="flex flex-wrap gap-2"
+      role="group"
+      aria-label="Filtrar por categoría"
+    >
       <button
         onClick={() => handleCategoryClick('all')}
-        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
           defaultValue === 'all'
             ? 'bg-primary text-white shadow-lg shadow-primary/30'
-            : 'bg-white dark:bg-dark-100 text-gray-700 dark:text-gray-300 hover:bg-primary/10 hover:text-primary border border-gray-200 dark:border-dark-200'
+            : 'bg-surface-light dark:bg-dark-100 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary border border-surface-light dark:border-dark-200'
         }`}
+        aria-pressed={defaultValue === 'all'}
       >
         Todos
       </button>
@@ -38,11 +43,12 @@ export default function CategoryFilter({ defaultValue, categories }: CategoryFil
         <button
           key={category.id}
           onClick={() => handleCategoryClick(category.id)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
             defaultValue === category.id
               ? 'bg-primary text-white shadow-lg shadow-primary/30'
-              : 'bg-white dark:bg-dark-100 text-gray-700 dark:text-gray-300 hover:bg-primary/10 hover:text-primary border border-gray-200 dark:border-dark-200'
+              : 'bg-surface-light dark:bg-dark-100 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary border border-surface-light dark:border-dark-200'
           }`}
+          aria-pressed={defaultValue === category.id}
         >
           {category.name}
         </button>
