@@ -38,12 +38,12 @@ const config: Config = {
         },
         // New refined color palette
         background: {
-          light: '#F4F6FB',
+          light: '#E8EAF2',
           dark: '#12121F',
         },
         surface: {
-          DEFAULT: '#ECEEF5',
-          light: '#ECEEF5',
+          DEFAULT: '#DADCE8',
+          light: '#DADCE8',
           dark: '#1C1C2E',
         },
         text: {

@@ -400,7 +400,7 @@ export default function AdminDashboard({
                     setFormData({ ...formData, name: e.target.value })
                     if (errors.name) setErrors({ ...errors, name: undefined })
                   }}
-                  placeholder="Ej: Panel solar 100W"
+                  placeholder="Ej: Placa de carga"
                   className={`w-full px-4 py-2.5 border rounded-lg bg-surface-light dark:bg-dark text-text-primary-light dark:text-text-primary-dark placeholder-text-secondary-light dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary transition-colors ${
                     errors.name ? 'border-red-500' : 'border-surface-light dark:border-dark-200'
                   }`}
