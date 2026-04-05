@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
+import { Toaster } from "@/components/Toaster";
 import { createClient } from "@/lib/supabase/server";
 
 const geistSans = localFont({
@@ -34,13 +35,14 @@ export default async function RootLayout({
   const isAuthenticated = !!session
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 dark:bg-dark text-gray-900 dark:text-gray-100`}
       >
         <ThemeProvider>
           <Navbar isAuthenticated={isAuthenticated} />
           {children}
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

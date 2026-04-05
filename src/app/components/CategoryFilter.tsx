@@ -32,7 +32,7 @@ export default function CategoryFilter({ defaultValue, categories }: CategoryFil
             : 'bg-white dark:bg-dark-100 text-gray-700 dark:text-gray-300 hover:bg-primary/10 hover:text-primary border border-gray-200 dark:border-dark-200'
         }`}
       >
-        All
+        Todos
       </button>
       {categories.map((category) => (
         <button
