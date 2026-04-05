@@ -1,7 +1,7 @@
 import { Product } from '@/types/product'
 import { Category } from '@/types/category'
 import { formatPriceARS } from '@/lib/utils'
-import { Package } from 'lucide-react'
+import { Package, Sparkles } from 'lucide-react'
 
 interface ProductListProps {
   products: Product[]
@@ -11,17 +11,16 @@ interface ProductListProps {
 
 function ProductCardSkeleton() {
   return (
-    <div className="bg-surface-light dark:bg-dark-100 rounded-xl shadow-md p-6 border border-surface-light dark:border-dark-200 animate-pulse">
-      <div className="h-5 bg-surface-light dark:bg-dark-200 rounded w-3/4 mb-3" />
-      <div className="h-8 bg-surface-light dark:bg-dark-200 rounded w-1/2 mb-3" />
-      <div className="h-6 bg-surface-light dark:bg-dark-200 rounded w-24" />
-    </div>
+    <div className="card skeleton h-48" />
   )
 }
 
 function ProductListSkeleton() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" aria-label="Cargando productos...">
+    <div 
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" 
+      aria-label="Cargando productos..."
+    >
       {[...Array(8)].map((_, i) => (
         <ProductCardSkeleton key={i} />
       ))}
@@ -55,14 +54,27 @@ export default function ProductList({ products, categories, isLoading }: Product
 
   if (products.length === 0) {
     return (
-      <div className="text-center py-16" role="status" aria-live="polite">
-        <div className="flex justify-center mb-4">
-          <div className="p-4 rounded-full bg-surface-light dark:bg-dark-100">
-            <Package className="w-12 h-12 text-text-secondary-light dark:text-text-secondary-dark" aria-hidden="true" />
+      <div 
+        className="text-center py-16 animate-fade-in" 
+        role="status" 
+        aria-live="polite"
+      >
+        <div className="flex justify-center mb-6">
+          <div className="relative">
+            <div className="p-6 rounded-full bg-surface-light dark:bg-dark-100">
+              <Package className="w-16 h-16 text-text-secondary-light dark:text-text-secondary-dark" />
+            </div>
+            <div className="absolute -top-1 -right-1 p-2 bg-primary/20 rounded-full animate-pulse-subtle">
+              <Sparkles className="w-5 h-5 text-primary" />
+            </div>
           </div>
         </div>
-        <p className="text-text-secondary-light dark:text-text-secondary-dark text-lg">No se encontraron productos</p>
-        <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm mt-2">Intenta con otros términos de búsqueda</p>
+        <h3 className="text-heading text-text-primary-light dark:text-text-primary-dark mb-2">
+          No hay productos todavía
+        </h3>
+        <p className="text-body text-text-secondary-light dark:text-text-secondary-dark max-w-sm mx-auto">
+          Explora nuestro catálogo pronto o contactános para más información
+        </p>
       </div>
     )
   }
@@ -73,21 +85,20 @@ export default function ProductList({ products, categories, isLoading }: Product
       role="list"
       aria-label="Lista de productos"
     >
-      {products.map((product) => (
+      {products.map((product, index) => (
         <article
           key={product.id}
-          className="bg-surface-light dark:bg-dark-100 rounded-xl shadow-md hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 p-6 border border-surface-light dark:border-dark-200 hover:border-primary/50"
+          className="card card-hover group cursor-pointer animate-slide-up"
+          style={{ animationDelay: `${index * 50}ms` }}
           role="listitem"
         >
-          <h3 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark mb-2 line-clamp-2">
+          <h3 className="text-subheading font-semibold text-text-primary-light dark:text-text-primary-dark mb-3 line-clamp-2 group-hover:text-primary transition-colors duration-200">
             {product.name}
           </h3>
-          <p className="text-2xl font-bold text-primary mb-3">
+          <p className="text-display text-primary mb-4 font-bold">
             {formatPriceARS(product.price)}
           </p>
-          <span
-            className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getCategoryColor(product.category_id)}`}
-          >
+          <span className={`badge ${getCategoryColor(product.category_id)}`}>
             {getCategoryName(product.category_id)}
           </span>
         </article>

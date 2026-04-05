@@ -8,6 +8,7 @@ export default function SearchBar({ defaultValue }: { defaultValue: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [query, setQuery] = useState(defaultValue)
+  const [isFocused, setIsFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -27,9 +28,11 @@ export default function SearchBar({ defaultValue }: { defaultValue: string }) {
 
   return (
     <form onSubmit={handleSearch} className="flex-1" role="search" aria-label="Buscar productos">
-      <div className="relative">
+      <div className={`relative transition-all duration-200 ease-smooth ${isFocused ? 'scale-[1.01]' : ''}`}>
         <Search 
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary-light dark:text-text-secondary-dark" 
+          className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors duration-200 ${
+            isFocused ? 'text-primary' : 'text-text-secondary-light dark:text-text-secondary-dark'
+          }`}
           aria-hidden="true" 
         />
         <input
@@ -37,8 +40,10 @@ export default function SearchBar({ defaultValue }: { defaultValue: string }) {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
           placeholder="Buscar productos..."
-          className="w-full pl-10 pr-4 py-2.5 border border-surface-light dark:border-dark-100 rounded-lg bg-surface-light dark:bg-dark-50 text-text-primary-light dark:text-text-primary-dark placeholder-text-secondary-light dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors shadow-sm"
+          className="input-field pl-12 pr-4 py-3.5 text-body shadow-elevation-1 focus:shadow-elevation-2"
           aria-label="Buscar productos por nombre"
         />
       </div>

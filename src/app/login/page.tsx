@@ -138,9 +138,14 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading || !supabase}
-              className="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/30 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              className="btn-primary w-full"
             >
-              {loading ? 'Ingresando...' : 'Iniciar sesión'}
+              {loading ? (
+                <>
+                  <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Ingresando...</span>
+                </>
+              ) : 'Iniciar sesión'}
             </button>
           </form>
         </div>

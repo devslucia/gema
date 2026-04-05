@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useRef } from 'react'
 import { Product } from '@/types/product'
 import { Category } from '@/types/category'
-import { Plus, Trash2, X, Package, Folder, AlertCircle, Edit2 } from 'lucide-react'
+import { Plus, Trash2, X, Package, Folder, AlertCircle, Edit2, CheckCircle2, Loader2 } from 'lucide-react'
 import { formatPriceARS } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -29,7 +29,7 @@ export default function AdminDashboard({
     price: '',
     category_id: '',
   })
-  const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [errors, setErrors] = useState<{ name?: string; price?: string; category?: string }>({})
   const modalRef = useRef<HTMLDivElement>(null)
   const categoryModalRef = useRef<HTMLDivElement>(null)
@@ -74,7 +74,7 @@ export default function AdminDashboard({
     
     if (!validateProductForm()) return
     
-    setLoading(true)
+    setSubmitting(true)
 
     if (editingProduct) {
       const { error } = await supabase
@@ -94,7 +94,9 @@ export default function AdminDashboard({
               : p
           )
         )
-        toast.success('Producto actualizado correctamente')
+        toast.success('Producto actualizado correctamente', {
+          icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
+        })
       }
     } else {
       const { data, error } = await supabase
@@ -108,17 +110,20 @@ export default function AdminDashboard({
 
       if (!error && data) {
         setProductList([data[0], ...productList])
-        toast.success('Producto agregado correctamente')
+        toast.success('Producto agregado correctamente', {
+          icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
+        })
       }
     }
 
-    setLoading(false)
+    setSubmitting(false)
     closeProductModal()
   }
 
   const handleProductDelete = async (id: string) => {
     if (!confirm('¿Estás seguro de que quieres eliminar este producto?')) return
 
+    setSubmitting(true)
     const { error } = await supabase.from('products').delete().eq('id', id)
 
     if (!error) {
@@ -127,6 +132,7 @@ export default function AdminDashboard({
     } else {
       toast.error('Error al eliminar el producto')
     }
+    setSubmitting(false)
   }
 
   const handleCategorySubmit = async (e: React.FormEvent) => {
@@ -143,7 +149,7 @@ export default function AdminDashboard({
       return
     }
 
-    setLoading(true)
+    setSubmitting(true)
     const { data, error } = await supabase
       .from('categories')
       .insert({ name: newCategoryName.trim() })
@@ -153,16 +159,19 @@ export default function AdminDashboard({
       setCategories([...categories, data[0]])
       setNewCategoryName('')
       setIsCategoryModalOpen(false)
-      toast.success('Categoría agregada correctamente')
+      toast.success('Categoría agregada correctamente', {
+        icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
+      })
     } else {
       toast.error('Error al agregar la categoría')
     }
-    setLoading(false)
+    setSubmitting(false)
   }
 
   const handleCategoryDelete = async (id: string) => {
     if (!confirm('¿Estás seguro de que quieres eliminar esta categoría? Los productos que la usen quedarán sin categoría.')) return
 
+    setSubmitting(true)
     const { error } = await supabase.from('categories').delete().eq('id', id)
 
     if (!error) {
@@ -171,6 +180,7 @@ export default function AdminDashboard({
     } else {
       toast.error('Error al eliminar la categoría')
     }
+    setSubmitting(false)
   }
 
   const openAddModal = () => {
@@ -232,71 +242,75 @@ export default function AdminDashboard({
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <section className="lg:col-span-2" aria-labelledby="products-heading">
             <div className="flex justify-between items-center mb-6">
-              <h2 id="products-heading" className="text-xl font-semibold text-text-primary-light dark:text-text-primary-dark">Productos</h2>
+              <h2 id="products-heading" className="text-heading text-text-primary-light dark:text-text-primary-dark">
+                Productos
+              </h2>
               <button
                 onClick={openAddModal}
-                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors shadow-lg shadow-primary/30 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                className="btn-primary flex items-center gap-2 touch-target"
                 aria-label="Agregar nuevo producto"
               >
-                <Plus className="w-4 h-4" aria-hidden="true" />
+                <Plus className="w-5 h-5" aria-hidden="true" />
                 Agregar producto
               </button>
             </div>
 
-            <div className="bg-surface-light dark:bg-dark-100 rounded-xl shadow overflow-hidden border border-primary/10 dark:border-dark-200">
+            <div className="card shadow-elevation-1 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-surface-light dark:divide-dark-200" aria-label="Lista de productos">
                   <thead className="bg-surface-light dark:bg-dark-200">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
                         Nombre
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
                         Precio
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
                         Categoría
                       </th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
                         Acciones
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-surface-light dark:divide-dark-200">
                     {productList.map((product) => (
-                      <tr key={product.id} className="hover:bg-surface-light dark:hover:bg-dark-200/50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary-light dark:text-text-primary-dark">
+                      <tr key={product.id} className="hover:bg-surface-light dark:hover:bg-dark-200/50 transition-colors duration-150">
+                        <td className="px-6 py-4 whitespace-nowrap text-body text-text-primary-light dark:text-text-primary-dark">
                           {product.name}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary">
+                        <td className="px-6 py-4 whitespace-nowrap text-body font-semibold text-primary">
                           {formatPriceARS(product.price)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs rounded-full ${getCategoryColor(product.category_id)}`}>
+                          <span className={`badge ${getCategoryColor(product.category_id)}`}>
                             {getCategoryName(product.category_id)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                          <button
-                            onClick={() => openEditModal(product)}
-                            className="text-primary hover:text-primary/70 mr-4 inline-flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
-                            aria-label={`Editar producto ${product.name}`}
-                          >
-                            <Edit2 className="w-4 h-4" aria-hidden="true" />
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => handleProductDelete(product.id)}
-                            className="text-red-500 hover:text-red-400 inline-flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 rounded"
-                            aria-label={`Eliminar producto ${product.name}`}
-                          >
-                            <Trash2 className="w-4 h-4" aria-hidden="true" />
-                            Eliminar
-                          </button>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => openEditModal(product)}
+                              className="btn-ghost flex items-center gap-1.5 touch-target"
+                              aria-label={`Editar producto ${product.name}`}
+                            >
+                              <Edit2 className="w-4 h-4" aria-hidden="true" />
+                              <span className="hidden sm:inline">Editar</span>
+                            </button>
+                            <button
+                              onClick={() => handleProductDelete(product.id)}
+                              className="btn-ghost flex items-center gap-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 touch-target"
+                              aria-label={`Eliminar producto ${product.name}`}
+                            >
+                              <Trash2 className="w-4 h-4" aria-hidden="true" />
+                              <span className="hidden sm:inline">Eliminar</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -305,14 +319,14 @@ export default function AdminDashboard({
               </div>
 
               {productList.length === 0 && (
-                <div className="text-center py-12" role="status" aria-live="polite">
+                <div className="text-center py-16 animate-fade-in" role="status" aria-live="polite">
                   <div className="flex justify-center mb-4">
                     <div className="p-4 rounded-full bg-surface-light dark:bg-dark-200">
-                      <Package className="w-10 h-10 text-text-secondary-light dark:text-text-secondary-dark" />
+                      <Package className="w-12 h-12 text-text-secondary-light dark:text-text-secondary-dark" />
                     </div>
                   </div>
-                  <p className="text-text-secondary-light dark:text-text-secondary-dark">No hay productos todavía</p>
-                  <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm mt-1">Agregá tu primer producto</p>
+                  <p className="text-body text-text-secondary-light dark:text-text-secondary-dark">No hay productos todavía</p>
+                  <p className="text-caption text-text-secondary-light/70 dark:text-text-secondary-dark/70 mt-1">Agregá tu primer producto</p>
                 </div>
               )}
             </div>
@@ -320,10 +334,10 @@ export default function AdminDashboard({
 
           <section aria-labelledby="categories-heading">
             <div className="flex justify-between items-center mb-6">
-              <h2 id="categories-heading" className="text-xl font-semibold text-text-primary-light dark:text-text-primary-dark">Categorías</h2>
+              <h2 id="categories-heading" className="text-heading text-text-primary-light dark:text-text-primary-dark">Categorías</h2>
               <button
                 onClick={() => setIsCategoryModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/90 text-white rounded-lg transition-colors shadow-lg shadow-secondary/30 focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
+                className="btn-secondary flex items-center gap-2 touch-target"
                 aria-label="Agregar nueva categoría"
               >
                 <Plus className="w-4 h-4" aria-hidden="true" />
@@ -331,28 +345,28 @@ export default function AdminDashboard({
               </button>
             </div>
 
-            <div className="bg-surface-light dark:bg-dark-100 rounded-xl shadow overflow-hidden border border-secondary/10 dark:border-dark-200">
+            <div className="card shadow-elevation-1 overflow-hidden">
               <ul className="divide-y divide-surface-light dark:divide-dark-200" aria-label="Lista de categorías">
                 {categories.map((category) => (
-                  <li key={category.id} className="px-6 py-4 flex items-center justify-between hover:bg-surface-light dark:hover:bg-dark-200/50 transition-colors">
-                    <span className="text-sm text-text-primary-light dark:text-text-primary-dark">{category.name}</span>
+                  <li key={category.id} className="px-6 py-4 flex items-center justify-between hover:bg-surface-light dark:hover:bg-dark-200/50 transition-colors duration-150">
+                    <span className="text-body text-text-primary-light dark:text-text-primary-dark">{category.name}</span>
                     <button
                       onClick={() => handleCategoryDelete(category.id)}
-                      className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                      className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-150 touch-target"
                       aria-label={`Eliminar categoría ${category.name}`}
                     >
-                      <Trash2 className="w-4 h-4" aria-hidden="true" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </li>
                 ))}
                 {categories.length === 0 && (
-                  <li className="px-6 py-8 text-center">
+                  <li className="px-6 py-12 text-center">
                     <div className="flex justify-center mb-3">
                       <div className="p-3 rounded-full bg-surface-light dark:bg-dark-200">
                         <Folder className="w-6 h-6 text-text-secondary-light dark:text-text-secondary-dark" />
                       </div>
                     </div>
-                    <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm">No hay categorías todavía</p>
+                    <p className="text-body text-text-secondary-light dark:text-text-secondary-dark">No hay categorías todavía</p>
                   </li>
                 )}
               </ul>
@@ -370,25 +384,25 @@ export default function AdminDashboard({
         >
           <div 
             ref={modalRef}
-            className="bg-surface-light dark:bg-dark-100 rounded-xl p-6 max-w-md w-full shadow-xl border border-primary/20 dark:border-dark-200"
+            className="card max-w-md w-full shadow-elevation-4 animate-scale-in"
           >
-            <div className="flex justify-between items-center mb-6">
-              <h2 id="product-modal-title" className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-surface-light dark:border-dark-200">
+              <h2 id="product-modal-title" className="text-heading text-text-primary-light dark:text-text-primary-dark">
                 {editingProduct ? 'Editar producto' : 'Agregar producto'}
               </h2>
               <button 
                 onClick={closeProductModal} 
-                className="text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark focus-visible:ring-2 focus-visible:ring-primary rounded"
+                className="p-2 text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark hover:bg-surface-light dark:hover:bg-dark-200 rounded-lg transition-colors duration-150 touch-target"
                 aria-label="Cerrar modal"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleProductSubmit}>
-              <div className="mb-4">
+              <div className="mb-5">
                 <label 
                   htmlFor="product-name" 
-                  className="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-2"
+                  className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-2"
                 >
                   Nombre <span className="text-red-500" aria-hidden="true">*</span>
                 </label>
@@ -401,23 +415,21 @@ export default function AdminDashboard({
                     if (errors.name) setErrors({ ...errors, name: undefined })
                   }}
                   placeholder="Ej: Placa de carga"
-                  className={`w-full px-4 py-2.5 border rounded-lg bg-surface-light dark:bg-dark text-text-primary-light dark:text-text-primary-dark placeholder-text-secondary-light dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary transition-colors ${
-                    errors.name ? 'border-red-500' : 'border-surface-light dark:border-dark-200'
-                  }`}
+                  className={`input-field ${errors.name ? 'border-red-500 focus:ring-red-500' : ''}`}
                   aria-describedby={errors.name ? 'product-name-error' : undefined}
                   aria-invalid={!!errors.name}
                 />
                 {errors.name && (
-                  <p id="product-name-error" className="mt-1 text-sm text-red-500 flex items-center gap-1" role="alert">
+                  <p id="product-name-error" className="mt-2 text-caption text-red-500 flex items-center gap-1" role="alert">
                     <AlertCircle className="w-4 h-4" aria-hidden="true" />
                     {errors.name}
                   </p>
                 )}
               </div>
-              <div className="mb-4">
+              <div className="mb-5">
                 <label 
                   htmlFor="product-price" 
-                  className="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-2"
+                  className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-2"
                 >
                   Precio <span className="text-red-500" aria-hidden="true">*</span>
                 </label>
@@ -432,14 +444,12 @@ export default function AdminDashboard({
                     if (errors.price) setErrors({ ...errors, price: undefined })
                   }}
                   placeholder="Ej: 15000,00"
-                  className={`w-full px-4 py-2.5 border rounded-lg bg-surface-light dark:bg-dark text-text-primary-light dark:text-text-primary-dark placeholder-text-secondary-light dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary transition-colors ${
-                    errors.price ? 'border-red-500' : 'border-surface-light dark:border-dark-200'
-                  }`}
+                  className={`input-field ${errors.price ? 'border-red-500 focus:ring-red-500' : ''}`}
                   aria-describedby={errors.price ? 'product-price-error' : undefined}
                   aria-invalid={!!errors.price}
                 />
                 {errors.price && (
-                  <p id="product-price-error" className="mt-1 text-sm text-red-500 flex items-center gap-1" role="alert">
+                  <p id="product-price-error" className="mt-2 text-caption text-red-500 flex items-center gap-1" role="alert">
                     <AlertCircle className="w-4 h-4" aria-hidden="true" />
                     {errors.price}
                   </p>
@@ -448,7 +458,7 @@ export default function AdminDashboard({
               <div className="mb-6">
                 <label 
                   htmlFor="product-category" 
-                  className="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-2"
+                  className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-2"
                 >
                   Categoría
                 </label>
@@ -456,27 +466,32 @@ export default function AdminDashboard({
                   id="product-category"
                   value={formData.category_id}
                   onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-surface-light dark:border-dark-200 rounded-lg bg-surface-light dark:bg-dark text-text-primary-light dark:text-text-primary-dark focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="input-field"
                 >
                   <option value="">Seleccionar categoría</option>
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
-                <p className="mt-1 text-xs text-text-secondary-light dark:text-text-secondary-dark">Opcional: dejá vacío si no tiene categoría</p>
+                <p className="mt-2 text-caption text-text-secondary-light dark:text-text-secondary-dark">Opcional: dejá vacío si no tiene categoría</p>
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-3">
                 <button
                   type="submit"
-                  disabled={loading || !isFormValid}
-                  className="flex-1 py-2.5 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  disabled={submitting || !isFormValid}
+                  className="btn-primary flex-1 flex items-center justify-center gap-2"
                 >
-                  {loading ? 'Guardando...' : editingProduct ? 'Actualizar' : 'Agregar'}
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                      Guardando...
+                    </>
+                  ) : editingProduct ? 'Actualizar' : 'Agregar'}
                 </button>
                 <button
                   type="button"
                   onClick={closeProductModal}
-                  className="flex-1 py-2.5 bg-surface-light dark:bg-dark-200 text-text-primary-light dark:text-text-primary-dark hover:bg-surface-light dark:hover:bg-dark-300 font-medium rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  className="btn-ghost flex-1"
                 >
                   Cancelar
                 </button>
@@ -495,13 +510,13 @@ export default function AdminDashboard({
         >
           <div 
             ref={categoryModalRef}
-            className="bg-surface-light dark:bg-dark-100 rounded-xl p-6 max-w-md w-full shadow-xl border border-secondary/20 dark:border-dark-200"
+            className="card max-w-md w-full shadow-elevation-4 animate-scale-in"
           >
-            <div className="flex justify-between items-center mb-6">
-              <h2 id="category-modal-title" className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">Agregar categoría</h2>
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-surface-light dark:border-dark-200">
+              <h2 id="category-modal-title" className="text-heading text-text-primary-light dark:text-text-primary-dark">Agregar categoría</h2>
               <button 
                 onClick={closeCategoryModal} 
-                className="text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark focus-visible:ring-2 focus-visible:ring-secondary rounded"
+                className="p-2 text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark hover:bg-surface-light dark:hover:bg-dark-200 rounded-lg transition-colors duration-150 touch-target"
                 aria-label="Cerrar modal"
               >
                 <X className="w-5 h-5" />
@@ -511,7 +526,7 @@ export default function AdminDashboard({
               <div className="mb-6">
                 <label 
                   htmlFor="category-name" 
-                  className="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-2"
+                  className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-2"
                 >
                   Nombre de la categoría <span className="text-red-500" aria-hidden="true">*</span>
                 </label>
@@ -521,22 +536,27 @@ export default function AdminDashboard({
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   placeholder="Ej: Electrónica"
-                  className="w-full px-4 py-2.5 border border-surface-light dark:border-dark-200 rounded-lg bg-surface-light dark:bg-dark text-text-primary-light dark:text-text-primary-dark placeholder-text-secondary-light dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-secondary"
+                  className="input-field"
                 />
-                <p className="mt-1 text-xs text-text-secondary-light dark:text-text-secondary-dark">Ingresa el nombre de la nueva categoría</p>
+                <p className="mt-2 text-caption text-text-secondary-light dark:text-text-secondary-dark">Ingresa el nombre de la nueva categoría</p>
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-3">
                 <button
                   type="submit"
-                  disabled={loading || !newCategoryName.trim()}
-                  className="flex-1 py-2.5 bg-secondary hover:bg-secondary/90 text-white font-medium rounded-lg transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
+                  disabled={submitting || !newCategoryName.trim()}
+                  className="btn-secondary flex-1 flex items-center justify-center gap-2"
                 >
-                  {loading ? 'Agregando...' : 'Agregar categoría'}
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                      Agregando...
+                    </>
+                  ) : 'Agregar categoría'}
                 </button>
                 <button
                   type="button"
                   onClick={closeCategoryModal}
-                  className="flex-1 py-2.5 bg-surface-light dark:bg-dark-200 text-text-primary-light dark:text-text-primary-dark hover:bg-surface-light dark:hover:bg-dark-300 font-medium rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
+                  className="btn-ghost flex-1"
                 >
                   Cancelar
                 </button>

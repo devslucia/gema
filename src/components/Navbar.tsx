@@ -73,11 +73,11 @@ export default function Navbar({ isAuthenticated = false }: NavbarProps) {
                 <span className="hidden sm:inline">Admin</span>
               </Link>
             )}
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg bg-surface-light dark:bg-dark-50 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/20 dark:hover:bg-primary/20 hover:text-primary dark:hover:text-primary transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-              aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-            >
+          <button
+                  onClick={toggleTheme}
+                  className="p-2.5 min-w-[44px] min-h-[44px] rounded-lg bg-surface-light dark:bg-dark-50 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/20 dark:hover:bg-primary/20 hover:text-primary dark:hover:text-primary transition-all hover:scale-105 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+                >
               {theme === 'dark' ? (
                 <Sun className="w-5 h-5" aria-hidden="true" />
               ) : (
