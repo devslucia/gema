@@ -2,83 +2,51 @@
 
 import { Product } from '@/types/product'
 import { Category } from '@/types/category'
-import { formatPriceARS } from '@/lib/utils'
 import { Package, Sparkles } from 'lucide-react'
-import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import ProductSection from './ProductSection'
 
-interface ProductListProps {
+export interface ProductsByCategory {
+  category: { id: string; name: string } | null
   products: Product[]
-  categories: Category[]
-  isLoading?: boolean
-  hasMore?: boolean
-  currentPage?: number
-  totalProducts?: number
 }
 
-function ProductCardSkeleton() {
-  return (
-    <div className="card skeleton h-48" />
-  )
+interface ProductListProps {
+  productsByCategory: ProductsByCategory[]
+  categories: Category[]
+  isLoading?: boolean
+  totalProducts?: number
 }
 
 function ProductListSkeleton() {
   return (
-    <div 
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" 
-      aria-label="Cargando productos..."
-    >
-      {[...Array(8)].map((_, i) => (
-        <ProductCardSkeleton key={i} />
+    <div className="space-y-12">
+      {[...Array(3)].map((_, i) => (
+        <div key={i}>
+          <div className="skeleton h-8 w-48 mb-6" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, j) => (
+              <div key={j} className="card skeleton h-48" />
+            ))}
+          </div>
+        </div>
       ))}
     </div>
   )
 }
 
-export default function ProductList({ 
-  products, 
-  categories, 
+export default function ProductList({
+  productsByCategory,
+  categories,
   isLoading,
-  hasMore,
-  currentPage = 1,
   totalProducts
 }: ProductListProps) {
-  const searchParams = useSearchParams()
-
-  const getNextPageParams = () => {
-    const params = new URLSearchParams()
-    const q = searchParams.get('q')
-    const category = searchParams.get('category')
-    if (q) params.set('q', q)
-    if (category) params.set('category', category)
-    params.set('page', String(currentPage + 1))
-    return params.toString()
-  }
-
-  const getCategoryName = (categoryId: string | null) => {
-    if (!categoryId) return 'Sin categoría'
-    const category = categories.find(c => c.id === categoryId)
-    return category?.name || 'Desconocida'
-  }
-
-  const getCategoryColor = (categoryId: string | null) => {
-    const category = categories.find(c => c.id === categoryId)
-    const colorIndex = categories.indexOf(category!) % 5
-    const colors = [
-      'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary-100',
-      'bg-secondary/20 text-secondary dark:bg-secondary/30 dark:text-secondary-100',
-      'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary-100',
-      'bg-secondary/20 text-secondary dark:bg-secondary/30 dark:text-secondary-100',
-      'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary-100',
-    ]
-    return colors[colorIndex] || colors[0]
-  }
+  const totalProductCount = productsByCategory.reduce((acc, group) => acc + group.products.length, 0)
 
   if (isLoading) {
     return <ProductListSkeleton />
   }
 
-  if (products.length === 0) {
+  if (totalProductCount === 0) {
     return (
       <div 
         className="text-center py-16 animate-fade-in" 
@@ -107,45 +75,19 @@ export default function ProductList({
 
   return (
     <div>
-      <div 
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-        role="list"
-        aria-label="Lista de productos"
-      >
-        {products.map((product, index) => (
-          <article
-            key={product.id}
-            className="card card-hover group cursor-pointer animate-slide-up"
-            style={{ animationDelay: `${index * 50}ms` }}
-            role="listitem"
-          >
-            <h3 className="text-subheading font-semibold text-text-primary-light dark:text-text-primary-dark mb-3 line-clamp-2 group-hover:text-primary transition-colors duration-200">
-              {product.name}
-            </h3>
-            <p className="text-display text-primary mb-4 font-bold">
-              {formatPriceARS(product.price)}
-            </p>
-            <span className={`badge ${getCategoryColor(product.category_id)}`}>
-              {getCategoryName(product.category_id)}
-            </span>
-          </article>
-        ))}
-      </div>
-
-      {hasMore && (
-        <div className="flex justify-center mt-10">
-          <Link
-            href={`?${getNextPageParams()}`}
-            className="btn-primary flex items-center gap-2"
-          >
-            Cargar más
-          </Link>
-        </div>
-      )}
+      {productsByCategory.map((group, index) => (
+        <ProductSection
+          key={group.category?.id || 'uncategorized'}
+          category={group.category}
+          products={group.products}
+          categories={categories}
+          categoryIndex={index}
+        />
+      ))}
 
       {totalProducts !== undefined && totalProducts > 0 && (
-        <p className="text-center text-caption text-text-secondary-light dark:text-text-secondary-dark mt-4">
-          Mostrando {products.length} de {totalProducts} productos
+        <p className="text-center text-caption text-text-secondary-light dark:text-text-secondary-dark mt-8 pt-8 border-t border-surface-light dark:border-dark-200">
+          Total: {totalProducts} {totalProducts === 1 ? 'producto' : 'productos'}
         </p>
       )}
     </div>
