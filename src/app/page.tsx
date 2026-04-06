@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { getProductsPaginated, getCategories } from '@/lib/supabase/pagination'
 import ProductList from './components/ProductList'
 import SearchBar from './components/SearchBar'
 import CategoryFilter from './components/CategoryFilter'
@@ -9,26 +9,23 @@ export const dynamic = 'force-dynamic'
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string }>
+  searchParams: Promise<{ q?: string; category?: string; page?: string }>
 }) {
-  const supabase = await createClient()
-  const { q, category } = await searchParams
+  const { q, category, page } = await searchParams
 
-  const [categoriesResponse, productsResponse] = await Promise.all([
-    supabase.from('categories').select('*').order('name'),
-    supabase.from('products').select('*').order('created_at', { ascending: false })
+  const currentPage = page ? parseInt(page, 10) : 1
+
+  const [paginatedResult, categories] = await Promise.all([
+    getProductsPaginated({
+      page: currentPage,
+      limit: 8,
+      search: q,
+      category: category || 'all',
+    }),
+    getCategories(),
   ])
 
-  const categories = (categoriesResponse.data || []) as Category[]
-  let products = productsResponse.data || []
-
-  if (q) {
-    products = products.filter(p => p.name.toLowerCase().includes(q.toLowerCase()))
-  }
-
-  if (category && category !== 'all') {
-    products = products.filter(p => p.category_id === category)
-  }
+  const typedCategories = categories as Category[]
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -36,11 +33,17 @@ export default async function Home({
         <SearchBar defaultValue={q || ''} />
         <CategoryFilter 
           defaultValue={category || 'all'} 
-          categories={categories}
+          categories={typedCategories}
         />
       </div>
 
-      <ProductList products={products} categories={categories} />
+      <ProductList 
+        products={paginatedResult.data} 
+        categories={typedCategories}
+        hasMore={paginatedResult.hasMore}
+        currentPage={currentPage}
+        totalProducts={paginatedResult.total}
+      />
     </main>
   )
 }

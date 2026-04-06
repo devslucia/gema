@@ -4,18 +4,25 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useRef } from 'react'
 import { Product } from '@/types/product'
 import { Category } from '@/types/category'
-import { Plus, Trash2, X, Package, Folder, AlertCircle, Edit2, CheckCircle2, Loader2 } from 'lucide-react'
+import { Plus, Trash2, X, Package, Folder, AlertCircle, Edit2, CheckCircle2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatPriceARS } from '@/lib/utils'
 import { toast } from 'sonner'
+import Link from 'next/link'
 
 interface AdminDashboardProps {
   products: Product[]
   categories: Category[]
+  currentPage?: number
+  totalProducts?: number
+  totalPages?: number
 }
 
 export default function AdminDashboard({
   products: initialProducts,
   categories: initialCategories,
+  currentPage = 1,
+  totalProducts = 0,
+  totalPages = 1,
 }: AdminDashboardProps) {
   const supabase = createClient()
   const [productList, setProductList] = useState(initialProducts)
@@ -33,6 +40,10 @@ export default function AdminDashboard({
   const [errors, setErrors] = useState<{ name?: string; price?: string; category?: string }>({})
   const modalRef = useRef<HTMLDivElement>(null)
   const categoryModalRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setProductList(initialProducts)
+  }, [initialProducts])
 
   const getCategoryName = (categoryId: string | null) => {
     if (!categoryId) return 'Sin categoría'
@@ -327,6 +338,32 @@ export default function AdminDashboard({
                   </div>
                   <p className="text-body text-text-secondary-light dark:text-text-secondary-dark">No hay productos todavía</p>
                   <p className="text-caption text-text-secondary-light/70 dark:text-text-secondary-dark/70 mt-1">Agregá tu primer producto</p>
+                </div>
+              )}
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-4 border-t border-surface-light dark:border-dark-200">
+                  <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">
+                    Página {currentPage} de {totalPages} ({totalProducts} productos)
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={currentPage > 1 ? `?page=${currentPage - 1}` : '#'}
+                      className={`btn-ghost flex items-center gap-1 touch-target ${currentPage <= 1 ? 'pointer-events-none opacity-50' : ''}`}
+                      aria-disabled={currentPage <= 1}
+                    >
+                      <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+                      Anterior
+                    </Link>
+                    <Link
+                      href={currentPage < totalPages ? `?page=${currentPage + 1}` : '#'}
+                      className={`btn-ghost flex items-center gap-1 touch-target ${currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''}`}
+                      aria-disabled={currentPage >= totalPages}
+                    >
+                      Siguiente
+                      <ChevronRight className="w-4 h-4" aria-hidden="true" />
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>
