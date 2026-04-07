@@ -15,7 +15,7 @@ interface ProductListProps {
   categories: Category[]
   isLoading?: boolean
   totalProducts?: number
-  maxProductsPerCategory?: number
+  categoryFilter?: string
 }
 
 function ProductListSkeleton() {
@@ -40,8 +40,10 @@ export default function ProductList({
   categories,
   isLoading,
   totalProducts,
-  maxProductsPerCategory = 4
+  categoryFilter = 'all'
 }: ProductListProps) {
+  const isFiltered = categoryFilter !== 'all'
+  const maxProducts = isFiltered ? Infinity : 4
   const totalProductCount = productsByCategory.reduce((acc, group) => acc + group.products.length, 0)
 
   if (isLoading) {
@@ -84,7 +86,7 @@ export default function ProductList({
           products={group.products}
           categories={categories}
           categoryIndex={index}
-          maxProducts={maxProductsPerCategory}
+          maxProducts={maxProducts}
         />
       ))}
 

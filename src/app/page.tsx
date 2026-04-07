@@ -35,6 +35,7 @@ export default async function Home({
         productsByCategory={productsByCategory}
         categories={typedCategories}
         totalProducts={totalProducts}
+        categoryFilter={category || 'all'}
       />
     </main>
   )
