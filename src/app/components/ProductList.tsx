@@ -15,11 +15,12 @@ interface ProductListProps {
   categories: Category[]
   isLoading?: boolean
   totalProducts?: number
+  maxProductsPerCategory?: number
 }
 
 function ProductListSkeleton() {
   return (
-    <div className="space-y-12">
+    <div className="space-y-10">
       {[...Array(3)].map((_, i) => (
         <div key={i}>
           <div className="skeleton h-8 w-48 mb-6" />
@@ -38,7 +39,8 @@ export default function ProductList({
   productsByCategory,
   categories,
   isLoading,
-  totalProducts
+  totalProducts,
+  maxProductsPerCategory = 4
 }: ProductListProps) {
   const totalProductCount = productsByCategory.reduce((acc, group) => acc + group.products.length, 0)
 
@@ -82,11 +84,12 @@ export default function ProductList({
           products={group.products}
           categories={categories}
           categoryIndex={index}
+          maxProducts={maxProductsPerCategory}
         />
       ))}
 
       {totalProducts !== undefined && totalProducts > 0 && (
-        <p className="text-center text-caption text-text-secondary-light dark:text-text-secondary-dark mt-8 pt-8 border-t border-surface-light dark:border-dark-200">
+        <p className="text-center text-caption text-text-secondary-light dark:text-text-secondary-dark mt-6 pt-6 border-t border-surface-light dark:border-dark-200">
           Total: {totalProducts} {totalProducts === 1 ? 'producto' : 'productos'}
         </p>
       )}
