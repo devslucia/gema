@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
 import { Toaster } from "@/components/Toaster";
+import Footer from "@/components/Footer";
 import { createClient } from "@/lib/supabase/server";
 
 const geistSans = localFont({
@@ -44,6 +45,7 @@ export default async function RootLayout({
           <main id="main-content" role="main" className="min-h-screen">
             {children}
           </main>
+          <Footer />
           <Toaster />
         </ThemeProvider>
       </body>
