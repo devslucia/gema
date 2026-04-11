@@ -98,20 +98,28 @@ export default function ProductList({
             Resultados para &ldquo;{searchQuery}&rdquo; <span className="text-text-secondary-light dark:text-text-secondary-dark font-normal">({totalProducts} {totalProducts === 1 ? 'producto' : 'productos'})</span>
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-            {flatProducts.map((product, index) => (
-              <article
-                key={product.id}
-                className="card card-hover group animate-slide-up"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <h3 className="text-subheading font-semibold text-text-primary-light dark:text-text-primary-dark mb-3 line-clamp-2 group-hover:text-primary transition-colors duration-200">
-                  {product.name}
-                </h3>
-                <p className="text-display text-primary mb-4 font-bold">
-                  {formatPriceARS(product.price)}
-                </p>
-              </article>
-            ))}
+            {flatProducts.map((product, index) => {
+              const category = categories.find(c => c.id === product.category_id)
+              return (
+                <article
+                  key={product.id}
+                  className="card card-hover group animate-slide-up relative"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <h3 className="text-subheading font-semibold text-text-primary-light dark:text-text-primary-dark mb-3 line-clamp-2 group-hover:text-primary transition-colors duration-200">
+                    {product.name}
+                  </h3>
+                  <p className="text-display text-primary mb-3 font-bold">
+                    {formatPriceARS(product.price)}
+                  </p>
+                  {category && (
+                    <span className="inline-block text-xs px-2.5 py-1 rounded-full bg-secondary/20 text-secondary dark:bg-secondary/30 dark:text-secondary-100">
+                      {category.name}
+                    </span>
+                  )}
+                </article>
+              )
+            })}
           </div>
         </div>
       )}

@@ -70,7 +70,7 @@ export default function ProductSection({
             <p className="text-display text-primary mb-4 font-bold">
               {formatPriceARS(product.price)}
             </p>
-            <span className={`badge ${colorClass}`}>
+            <span className="inline-block text-xs px-2.5 py-1 rounded-full bg-secondary/20 text-secondary dark:bg-secondary/30 dark:text-secondary-100">
               {categoryName}
             </span>
           </article>
