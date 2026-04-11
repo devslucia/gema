@@ -32,13 +32,13 @@ export default function CategoryFilter({ defaultValue, categories }: CategoryFil
 
   return (
     <div 
-      className="flex flex-wrap gap-3 items-center"
+      className="flex gap-3 items-center overflow-x-auto pb-2 scrollbar-hide [-ms-overflow-style:none] [scrollbar-width:none]"
       role="group"
       aria-label="Filtrar por categoría"
     >
       <button
         onClick={() => handleCategoryClick('all')}
-        className={`px-5 py-2.5 rounded-lg text-body font-medium transition-all duration-200 ease-smooth touch-target focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+        className={`flex-shrink-0 px-5 py-2.5 rounded-lg text-body font-medium transition-all duration-200 ease-smooth touch-target focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
           defaultValue === 'all'
             ? 'bg-primary text-white shadow-elevation-2 hover:scale-[1.02] active:scale-[0.98]'
             : 'bg-surface-light dark:bg-dark-100 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/20'
@@ -52,7 +52,7 @@ export default function CategoryFilter({ defaultValue, categories }: CategoryFil
         <button
           key={category.id}
           onClick={() => handleCategoryClick(category.id)}
-          className={`px-5 py-2.5 rounded-lg text-body font-medium transition-all duration-200 ease-smooth touch-target focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+          className={`flex-shrink-0 px-5 py-2.5 rounded-lg text-body font-medium transition-all duration-200 ease-smooth touch-target focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
             defaultValue === category.id
               ? 'bg-primary text-white shadow-elevation-2 hover:scale-[1.02] active:scale-[0.98]'
               : 'bg-surface-light dark:bg-dark-100 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/20'
@@ -66,7 +66,7 @@ export default function CategoryFilter({ defaultValue, categories }: CategoryFil
       {hasMore && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="px-4 py-2.5 rounded-lg text-body font-medium text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors duration-200 ease-smooth touch-target flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          className="flex-shrink-0 px-4 py-2.5 rounded-lg text-body font-medium text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors duration-200 ease-smooth touch-target flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           aria-expanded={showAll}
         >
           {showAll ? (

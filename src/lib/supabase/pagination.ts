@@ -212,3 +212,17 @@ export async function searchProducts(query: string): Promise<SearchResult[]> {
 
   return results
 }
+
+export async function searchProductsFlat(query: string): Promise<Product[]> {
+  if (!query.trim()) return []
+
+  const supabase = await createClient()
+
+  const { data: products } = await supabase
+    .from('products')
+    .select('*')
+    .ilike('name', `%${query}%`)
+    .order('name')
+
+  return (products as Product[]) || []
+}

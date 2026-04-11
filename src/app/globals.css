@@ -125,4 +125,9 @@
   .touch-target {
     @apply min-w-[44px] min-h-[44px];
   }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
