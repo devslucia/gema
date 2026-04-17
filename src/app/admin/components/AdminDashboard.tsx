@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useRef } from 'react'
 import { Product } from '@/types/product'
 import { Category } from '@/types/category'
-import { Plus, Trash2, X, Package, Folder, AlertCircle, Edit2, CheckCircle2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, X, Package, Folder, AlertCircle, Edit2, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Search, Eye } from 'lucide-react'
 import { formatPriceARS } from '@/lib/utils'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -29,6 +29,9 @@ export default function AdminDashboard({
   const [categories, setCategories] = useState(initialCategories)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [formData, setFormData] = useState({
@@ -40,6 +43,7 @@ export default function AdminDashboard({
   const [errors, setErrors] = useState<{ name?: string; price?: string; category?: string }>({})
   const modalRef = useRef<HTMLDivElement>(null)
   const categoryModalRef = useRef<HTMLDivElement>(null)
+  const detailModalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setProductList(initialProducts)
@@ -224,11 +228,28 @@ export default function AdminDashboard({
     setNewCategoryName('')
   }
 
+  const openDetailModal = (product: Product) => {
+    setSelectedProduct(product)
+    setIsDetailModalOpen(true)
+  }
+
+  const closeDetailModal = () => {
+    setIsDetailModalOpen(false)
+    setSelectedProduct(null)
+  }
+
+  const filteredProducts = searchQuery.trim()
+    ? productList.filter(p => 
+        p.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
+      )
+    : productList
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (isModalOpen) closeProductModal()
         if (isCategoryModalOpen) closeCategoryModal()
+        if (isDetailModalOpen) closeDetailModal()
       }
     }
 
@@ -239,6 +260,9 @@ export default function AdminDashboard({
       if (isCategoryModalOpen && categoryModalRef.current && !categoryModalRef.current.contains(e.target as Node)) {
         closeCategoryModal()
       }
+      if (isDetailModalOpen && detailModalRef.current && !detailModalRef.current.contains(e.target as Node)) {
+        closeDetailModal()
+      }
     }
 
     document.addEventListener('keydown', handleKeyDown)
@@ -247,7 +271,7 @@ export default function AdminDashboard({
       document.removeEventListener('keydown', handleKeyDown)
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [isModalOpen, isCategoryModalOpen])
+  }, [isModalOpen, isCategoryModalOpen, isDetailModalOpen])
 
   const isFormValid = formData.name.trim() && formData.price && parseFloat(formData.price) >= 0
 
@@ -270,6 +294,19 @@ export default function AdminDashboard({
               </button>
             </div>
 
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary-light dark:text-text-secondary-dark" aria-hidden="true" />
+                <input
+                  type="text"
+                  placeholder="Buscar productos..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="input-field pl-10"
+                />
+              </div>
+            </div>
+
             <div className="card shadow-elevation-1 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-surface-light dark:divide-dark-200" aria-label="Lista de productos">
@@ -290,7 +327,7 @@ export default function AdminDashboard({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-surface-light dark:divide-dark-200">
-                    {productList.map((product) => (
+                    {filteredProducts.map((product) => (
                       <tr key={product.id} className="hover:bg-surface-light dark:hover:bg-dark-200/50 transition-colors duration-150">
                         <td className="px-6 py-4 whitespace-nowrap text-body text-text-primary-light dark:text-text-primary-dark">
                           {product.name}
@@ -305,6 +342,14 @@ export default function AdminDashboard({
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => openDetailModal(product)}
+                              className="btn-ghost flex items-center gap-1.5 touch-target"
+                              aria-label={`Ver detalle del producto ${product.name}`}
+                            >
+                              <Eye className="w-4 h-4" aria-hidden="true" />
+                              <span className="hidden sm:inline">Ver</span>
+                            </button>
                             <button
                               onClick={() => openEditModal(product)}
                               className="btn-ghost flex items-center gap-1.5 touch-target"
@@ -599,6 +644,79 @@ export default function AdminDashboard({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {isDetailModalOpen && selectedProduct && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="detail-modal-title"
+        >
+          <div 
+            ref={detailModalRef}
+            className="card max-w-md w-full shadow-elevation-4 animate-scale-in"
+          >
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-surface-light dark:border-dark-200">
+              <h2 id="detail-modal-title" className="text-heading text-text-primary-light dark:text-text-primary-dark">Detalle del Producto</h2>
+              <button 
+                onClick={closeDetailModal} 
+                className="p-2 text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark hover:bg-surface-light dark:hover:bg-dark-200 rounded-lg transition-colors duration-150 touch-target"
+                aria-label="Cerrar modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Nombre</p>
+                <p className="text-body font-medium text-text-primary-light dark:text-text-primary-dark">{selectedProduct.name}</p>
+              </div>
+              <div>
+                <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Precio</p>
+                <p className="text-body font-semibold text-primary">{formatPriceARS(selectedProduct.price)}</p>
+              </div>
+              <div>
+                <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Categoría</p>
+                <span className={`badge ${getCategoryColor(selectedProduct.category_id)}`}>
+                  {getCategoryName(selectedProduct.category_id)}
+                </span>
+              </div>
+              <div>
+                <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Fecha de creación</p>
+                <p className="text-body text-text-primary-light dark:text-text-primary-dark">
+                  {new Date(selectedProduct.created_at).toLocaleDateString('es-AR', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  closeDetailModal()
+                  openEditModal(selectedProduct)
+                }}
+                className="btn-primary flex-1 flex items-center justify-center gap-2"
+              >
+                <Edit2 className="w-4 h-4" aria-hidden="true" />
+                Editar
+              </button>
+              <button
+                type="button"
+                onClick={closeDetailModal}
+                className="btn-ghost flex-1"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}
