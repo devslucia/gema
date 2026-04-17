@@ -1,8 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { Product } from '@/types/product'
 import { Category } from '@/types/category'
 import { formatPriceARS } from '@/lib/utils'
+import { X, MapPin, Eye } from 'lucide-react'
 import Link from 'next/link'
 
 interface ProductSectionProps {
@@ -30,10 +32,23 @@ export default function ProductSection({
   categoryIndex,
   maxProducts = 4,
 }: ProductSectionProps) {
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  
   const categoryName = category?.name || 'Sin categoría'
   const colorClass = getCategoryColor(categoryIndex)
   const hasMore = products.length > maxProducts
   const visibleProducts = products.slice(0, maxProducts)
+
+  const openModal = (product: Product) => {
+    setSelectedProduct(product)
+    setIsModalOpen(true)
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setSelectedProduct(null)
+  }
   
   return (
     <section className="mb-10 last:mb-0 animate-fade-in pb-10 border-b border-surface-light dark:border-dark-200 last:border-b-0">
@@ -61,7 +76,8 @@ export default function ProductSection({
         {visibleProducts.map((product, index) => (
           <article
             key={product.id}
-            className="card card-hover group animate-slide-up"
+            onClick={() => openModal(product)}
+            className="card card-hover group animate-slide-up cursor-pointer"
             style={{ animationDelay: `${index * 50}ms` }}
           >
             <h3 className="text-subheading font-semibold text-text-primary-light dark:text-text-primary-dark mb-3 line-clamp-2 group-hover:text-primary transition-colors duration-200">
@@ -76,6 +92,67 @@ export default function ProductSection({
           </article>
         ))}
       </div>
+
+      {isModalOpen && selectedProduct && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="product-modal-title"
+        >
+          <div className="card max-w-md w-full shadow-elevation-4 animate-scale-in">
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-surface-light dark:border-dark-200">
+              <h2 id="product-modal-title" className="text-heading text-text-primary-light dark:text-text-primary-dark">
+                Detalle del Producto
+              </h2>
+              <button 
+                onClick={closeModal} 
+                className="p-2 text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark hover:bg-surface-light dark:hover:bg-dark-200 rounded-lg transition-colors duration-150 touch-target"
+                aria-label="Cerrar modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Nombre</p>
+                <p className="text-body font-medium text-text-primary-light dark:text-text-primary-dark">{selectedProduct.name}</p>
+              </div>
+              <div>
+                <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Precio</p>
+                <p className="text-body font-semibold text-primary">{formatPriceARS(selectedProduct.price)}</p>
+              </div>
+              <div>
+                <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Categoría</p>
+                <span className={`badge ${colorClass}`}>
+                  {categoryName}
+                </span>
+              </div>
+              <div>
+                <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Ubicación</p>
+                <a
+                  href="https://www.google.com/maps/search/Av.+Bartolomé+Mitre+1772"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-primary hover:underline cursor-pointer touch-target"
+                >
+                  <MapPin className="w-4 h-4" aria-hidden="true" />
+                  Av. Bartolomé Mitre 1772
+                </a>
+              </div>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={closeModal}
+                className="btn-primary flex-1"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

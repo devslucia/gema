@@ -1,8 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { Product } from '@/types/product'
 import { Category } from '@/types/category'
-import { Package, Sparkles } from 'lucide-react'
+import { Package, Sparkles, X, MapPin } from 'lucide-react'
 import { formatPriceARS } from '@/lib/utils'
 import ProductSection from './ProductSection'
 
@@ -47,10 +48,42 @@ export default function ProductList({
   categoryFilter = 'all',
   searchQuery = ''
 }: ProductListProps) {
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
   const isSearchActive = searchQuery.trim().length > 0
   const isFiltered = categoryFilter !== 'all'
   const maxProducts = isFiltered ? Infinity : 4
   const totalProductCount = productsByCategory.reduce((acc, group) => acc + group.products.length, 0) + flatProducts.length
+
+  const getCategoryName = (categoryId: string | null) => {
+    if (!categoryId) return 'Sin categoría'
+    const cat = categories.find(c => c.id === categoryId)
+    return cat?.name || 'Sin categoría'
+  }
+
+  const getCategoryColor = (categoryId: string | null) => {
+    const cat = categories.find(c => c.id === categoryId)
+    const colorIndex = categories.indexOf(cat!) % 5
+    const colors = [
+      'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary-100',
+      'bg-secondary/20 text-secondary dark:bg-secondary/30 dark:text-secondary-100',
+      'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary-100',
+      'bg-secondary/20 text-secondary dark:bg-secondary/30 dark:text-secondary-100',
+      'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary-100',
+    ]
+    return colors[colorIndex] || colors[0]
+  }
+
+  const openModal = (product: Product) => {
+    setSelectedProduct(product)
+    setIsModalOpen(true)
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setSelectedProduct(null)
+  }
 
   if (isLoading) {
     return <ProductListSkeleton />
@@ -103,7 +136,8 @@ export default function ProductList({
               return (
                 <article
                   key={product.id}
-                  className="card card-hover group animate-slide-up relative"
+                  onClick={() => openModal(product)}
+                  className="card card-hover group animate-slide-up relative cursor-pointer"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <h3 className="text-subheading font-semibold text-text-primary-light dark:text-text-primary-dark mb-3 line-clamp-2 group-hover:text-primary transition-colors duration-200">
@@ -139,6 +173,67 @@ export default function ProductList({
         <p className="text-center text-caption text-text-secondary-light dark:text-text-secondary-dark mt-6 pt-6 border-t border-surface-light dark:border-dark-200">
           Total: {totalProducts} {totalProducts === 1 ? 'producto' : 'productos'}
         </p>
+      )}
+
+      {isModalOpen && selectedProduct && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="product-modal-title"
+        >
+          <div className="card max-w-md w-full shadow-elevation-4 animate-scale-in">
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-surface-light dark:border-dark-200">
+              <h2 id="product-modal-title" className="text-heading text-text-primary-light dark:text-text-primary-dark">
+                Detalle del Producto
+              </h2>
+              <button 
+                onClick={closeModal} 
+                className="p-2 text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark hover:bg-surface-light dark:hover:bg-dark-200 rounded-lg transition-colors duration-150 touch-target"
+                aria-label="Cerrar modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Nombre</p>
+                <p className="text-body font-medium text-text-primary-light dark:text-text-primary-dark">{selectedProduct.name}</p>
+              </div>
+              <div>
+                <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Precio</p>
+                <p className="text-body font-semibold text-primary">{formatPriceARS(selectedProduct.price)}</p>
+              </div>
+              <div>
+                <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Categoría</p>
+                <span className={`badge ${getCategoryColor(selectedProduct.category_id)}`}>
+                  {getCategoryName(selectedProduct.category_id)}
+                </span>
+              </div>
+              <div>
+                <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Ubicación</p>
+                <a
+                  href="https://www.google.com/maps/search/Av.+Bartolomé+Mitre+1772"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-primary hover:underline cursor-pointer touch-target"
+                >
+                  <MapPin className="w-4 h-4" aria-hidden="true" />
+                  Av. Bartolomé Mitre 1772
+                </a>
+              </div>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={closeModal}
+                className="btn-primary flex-1"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

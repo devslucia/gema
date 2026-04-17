@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useRef } from 'react'
 import { Product } from '@/types/product'
 import { Category } from '@/types/category'
-import { Plus, Trash2, X, Package, Folder, AlertCircle, Edit2, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Search, Eye } from 'lucide-react'
+import { Plus, Trash2, X, Package, Folder, AlertCircle, Edit2, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Search, Eye, MapPin } from 'lucide-react'
 import { formatPriceARS } from '@/lib/utils'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -328,22 +328,26 @@ export default function AdminDashboard({
                   </thead>
                   <tbody className="divide-y divide-surface-light dark:divide-dark-200">
                     {filteredProducts.map((product) => (
-                      <tr key={product.id} className="hover:bg-surface-light dark:hover:bg-dark-200/50 transition-colors duration-150">
-                        <td className="px-6 py-4 whitespace-nowrap text-body text-text-primary-light dark:text-text-primary-dark">
-                          {product.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-body font-semibold text-primary">
-                          {formatPriceARS(product.price)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`badge ${getCategoryColor(product.category_id)}`}>
-                            {getCategoryName(product.category_id)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => openDetailModal(product)}
+                      <tr 
+                      key={product.id} 
+                      onClick={() => openDetailModal(product)}
+                      className="hover:bg-surface-light dark:hover:bg-dark-200/50 transition-colors duration-150 cursor-pointer"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap text-body text-text-primary-light dark:text-text-primary-dark">
+                        {product.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-body font-semibold text-primary">
+                        {formatPriceARS(product.price)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`badge ${getCategoryColor(product.category_id)}`}>
+                          {getCategoryName(product.category_id)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => openDetailModal(product)}
                               className="btn-ghost flex items-center gap-1.5 touch-target"
                               aria-label={`Ver detalle del producto ${product.name}`}
                             >
@@ -695,6 +699,18 @@ export default function AdminDashboard({
                     minute: '2-digit'
                   })}
                 </p>
+              </div>
+              <div>
+                <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Ubicación</p>
+                <a
+                  href="https://www.google.com/maps/search/Av.+Bartolomé+Mitre+1772"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-primary hover:underline cursor-pointer touch-target"
+                >
+                  <MapPin className="w-4 h-4" aria-hidden="true" />
+                  Av. Bartolomé Mitre 1772
+                </a>
               </div>
             </div>
             <div className="mt-6 flex gap-3">
