@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Product } from '@/types/product'
 import { Category } from '@/types/category'
 import { formatPriceARS } from '@/lib/utils'
-import { X, MapPin, Eye } from 'lucide-react'
+import { X, MapPin } from 'lucide-react'
 import Link from 'next/link'
 
 interface ProductSectionProps {
