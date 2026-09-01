@@ -47,3 +47,10 @@ CREATE POLICY "Admin can manage products" ON products
 
 -- Insert default categories (run this manually if needed)
 -- INSERT INTO categories (name) VALUES ('Module'), ('Battery'), ('Other');
+
+-- Add GIN index for full-text search optimization on products.name
+-- This significantly improves ILIKE query performance
+CREATE INDEX IF NOT EXISTS idx_products_name_gin ON products USING GIN (name gin_trgm_ops);
+
+-- Enable pg_trgm extension for GIN index (run once in Supabase SQL Editor)
+-- CREATE EXTENSION IF NOT EXISTS pg_trgm;

@@ -165,16 +165,24 @@ export interface SearchResult {
   category: { id: string; name: string } | null
 }
 
-export async function searchProducts(query: string): Promise<SearchResult[]> {
+export async function searchProducts(query: string, limit = 10, offset = 0): Promise<SearchResult[]> {
   if (!query.trim()) return []
 
   const supabase = await createClient()
 
-  const { data: products } = await supabase
+  // Try full-text search first (requires pg_trgm extension), fallback to ILIKE
+  let productsQuery = supabase
     .from('products')
     .select('*')
-    .ilike('name', `%${query}%`)
     .order('name')
+    .range(offset, offset + limit - 1)
+
+  // Use ILIKE for now (works without pg_trgm extension)
+  // For better performance with large datasets, enable pg_trgm and use:
+  // productsQuery = productsQuery.textSearch('name', query, { type: 'websearch' })
+  productsQuery = productsQuery.ilike('name', `%${query}%`)
+
+  const { data: products } = await productsQuery
 
   const { data: categories } = await supabase
     .from('categories')

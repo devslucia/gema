@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState, useRef, forwardRef } from 'react'
 import { Product } from '@/types/product'
 import { formatPriceARS } from '@/lib/utils'
 import { useSearchParams } from 'next/navigation'
@@ -10,9 +11,7 @@ interface SearchResultGroup {
 }
 
 interface SearchDropdownProps {
-  results: SearchResultGroup[]
   query: string
-  isLoading: boolean
 }
 
 const getCategoryColor = (index: number) => {
@@ -26,12 +25,79 @@ const getCategoryColor = (index: number) => {
   return colors[index % 5]
 }
 
-export default function SearchDropdown({
-  results,
-  query,
-  isLoading,
-}: SearchDropdownProps) {
+// Simple in-memory cache for search results
+const searchCache = new Map<string, { data: SearchResultGroup[]; timestamp: number }>()
+const CACHE_TTL = 30000 // 30 seconds
+
+const SearchDropdown = forwardRef<HTMLDivElement, SearchDropdownProps>(({ query }, ref) => {
   const searchParams = useSearchParams()
+  const [results, setResults] = useState<SearchResultGroup[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([])
+      setError(null)
+      return
+    }
+
+    // Check cache first
+    const cached = searchCache.get(query)
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      setResults(cached.data)
+      return
+    }
+
+    // Clear previous debounce timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    // Debounce the API call
+    debounceTimerRef.current = setTimeout(() => {
+      // Abort previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+      abortControllerRef.current = new AbortController()
+
+      setIsLoading(true)
+      setError(null)
+
+      fetch(`/api/search?q=${encodeURIComponent(query)}&limit=10`, { 
+        signal: abortControllerRef.current.signal 
+      })
+        .then(res => {
+          if (!res.ok) throw new Error('Error en la búsqueda')
+          return res.json()
+        })
+        .then(data => {
+          setResults(data)
+          // Cache the results
+          searchCache.set(query, { data, timestamp: Date.now() })
+          setIsLoading(false)
+        })
+        .catch(err => {
+          if (err.name !== 'AbortError') {
+            setError('Error al buscar productos')
+            setResults([])
+            setIsLoading(false)
+          }
+        })
+    }, 150)
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [query])
 
   const handleProductClick = () => {
     const params = new URLSearchParams(searchParams)
@@ -50,6 +116,14 @@ export default function SearchDropdown({
     )
   }
 
+  if (error) {
+    return (
+      <div className="absolute top-full left-0 right-0 mt-2 card shadow-elevation-3 z-50 p-6 text-center">
+        <p className="text-body text-red-500">{error}</p>
+      </div>
+    )
+  }
+
   if (results.length === 0 && query.trim()) {
     return (
       <div className="absolute top-full left-0 right-0 mt-2 card shadow-elevation-3 z-50 p-6 text-center">
@@ -63,7 +137,11 @@ export default function SearchDropdown({
   if (results.length === 0) return null
 
   return (
-    <div className="absolute top-full left-0 right-0 mt-2 card shadow-elevation-3 z-50 max-h-96 overflow-y-auto">
+    <div 
+      ref={ref}
+      className="absolute top-full left-0 right-0 mt-2 card shadow-elevation-3 z-50 max-h-96 overflow-y-auto"
+      role="listbox"
+    >
       {results.map((group, groupIndex) => (
         <div key={group.category?.id || 'uncategorized'} className="border-b border-surface-light dark:border-dark-200 last:border-b-0">
           <div className="px-4 py-3 bg-surface-light dark:bg-dark-200/50 sticky top-0">
@@ -77,6 +155,7 @@ export default function SearchDropdown({
                 <button
                   onClick={handleProductClick}
                   className="w-full px-4 py-3 flex items-center justify-between hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors duration-150 text-left"
+                  role="option"
                 >
                   <span className="text-body text-text-primary-light dark:text-text-primary-dark font-medium">
                     {product.name}
@@ -92,4 +171,8 @@ export default function SearchDropdown({
       ))}
     </div>
   )
-}
+})
+
+SearchDropdown.displayName = 'SearchDropdown'
+
+export default SearchDropdown
