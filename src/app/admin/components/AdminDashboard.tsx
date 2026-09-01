@@ -8,6 +8,7 @@ import { Plus, Trash2, X, Package, Folder, AlertCircle, Edit2, CheckCircle2, Loa
 import { formatPriceARS } from '@/lib/utils'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { getStockStatus, getStockStatusLabel, getStockStatusColor, StockAdjustment } from '@/types/product'
 
 interface AdminDashboardProps {
   products: Product[]
@@ -30,7 +31,9 @@ export default function AdminDashboard({
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [stockAdjustProduct, setStockAdjustProduct] = useState<Product | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [newCategoryName, setNewCategoryName] = useState('')
@@ -38,12 +41,22 @@ export default function AdminDashboard({
     name: '',
     price: '',
     category_id: '',
+    stock_actual: '',
+    stock_minimo: '',
+  })
+  const [stockFormData, setStockFormData] = useState({
+    tipo: 'entrada' as 'entrada' | 'salida' | 'ajuste',
+    cantidad: '',
+    motivo: '',
   })
   const [submitting, setSubmitting] = useState(false)
-  const [errors, setErrors] = useState<{ name?: string; price?: string; category?: string }>({})
+  const [stockSubmitting, setStockSubmitting] = useState(false)
+  const [errors, setErrors] = useState<{ name?: string; price?: string; category?: string; stock_actual?: string; stock_minimo?: string }>({})
+  const [stockErrors, setStockErrors] = useState<{ cantidad?: string; motivo?: string }>({})
   const modalRef = useRef<HTMLDivElement>(null)
   const categoryModalRef = useRef<HTMLDivElement>(null)
   const detailModalRef = useRef<HTMLDivElement>(null)
+  const stockModalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setProductList(initialProducts)
@@ -69,7 +82,7 @@ export default function AdminDashboard({
   }
 
   const validateProductForm = () => {
-    const newErrors: { name?: string; price?: string } = {}
+    const newErrors: { name?: string; price?: string; category?: string; stock_actual?: string; stock_minimo?: string } = {}
     
     if (!formData.name.trim()) {
       newErrors.name = 'El nombre es requerido'
@@ -78,6 +91,16 @@ export default function AdminDashboard({
     const price = parseFloat(formData.price)
     if (!formData.price || isNaN(price) || price < 0) {
       newErrors.price = 'Ingresa un precio válido'
+    }
+
+    const stockActual = parseInt(formData.stock_actual, 10)
+    if (formData.stock_actual === '' || isNaN(stockActual) || stockActual < 0) {
+      newErrors.stock_actual = 'Stock actual inválido'
+    }
+
+    const stockMinimo = parseInt(formData.stock_minimo, 10)
+    if (formData.stock_minimo === '' || isNaN(stockMinimo) || stockMinimo < 0) {
+      newErrors.stock_minimo = 'Stock mínimo inválido'
     }
     
     setErrors(newErrors)
@@ -91,13 +114,20 @@ export default function AdminDashboard({
     
     setSubmitting(true)
 
+    const productData = {
+      name: formData.name.trim(),
+      price: parseFloat(formData.price),
+      category_id: formData.category_id || null,
+      stock_actual: parseInt(formData.stock_actual, 10),
+      stock_minimo: parseInt(formData.stock_minimo, 10),
+    }
+
     if (editingProduct) {
       const { error } = await supabase
         .from('products')
         .update({
-          name: formData.name.trim(),
-          price: parseFloat(formData.price),
-          category_id: formData.category_id || null,
+          ...productData,
+          updated_at: new Date().toISOString()
         })
         .eq('id', editingProduct.id)
 
@@ -105,7 +135,7 @@ export default function AdminDashboard({
         setProductList(
           productList.map((p) =>
             p.id === editingProduct.id
-              ? { ...p, name: formData.name.trim(), price: parseFloat(formData.price), category_id: formData.category_id || null }
+              ? { ...p, ...productData }
               : p
           )
         )
@@ -116,11 +146,7 @@ export default function AdminDashboard({
     } else {
       const { data, error } = await supabase
         .from('products')
-        .insert({
-          name: formData.name.trim(),
-          price: parseFloat(formData.price),
-          category_id: formData.category_id || null,
-        })
+        .insert(productData)
         .select()
 
       if (!error && data) {
@@ -200,7 +226,7 @@ export default function AdminDashboard({
 
   const openAddModal = () => {
     setEditingProduct(null)
-    setFormData({ name: '', price: '', category_id: '' })
+    setFormData({ name: '', price: '', category_id: '', stock_actual: '0', stock_minimo: '5' })
     setErrors({})
     setIsModalOpen(true)
   }
@@ -211,6 +237,8 @@ export default function AdminDashboard({
       name: product.name,
       price: product.price.toString(),
       category_id: product.category_id || '',
+      stock_actual: product.stock_actual.toString(),
+      stock_minimo: product.stock_minimo.toString(),
     })
     setErrors({})
     setIsModalOpen(true)
@@ -219,8 +247,92 @@ export default function AdminDashboard({
   const closeProductModal = () => {
     setIsModalOpen(false)
     setEditingProduct(null)
-    setFormData({ name: '', price: '', category_id: '' })
+    setFormData({ name: '', price: '', category_id: '', stock_actual: '0', stock_minimo: '5' })
     setErrors({})
+  }
+
+  const openStockModal = (product: Product) => {
+    setStockAdjustProduct(product)
+    setStockFormData({ tipo: 'entrada', cantidad: '', motivo: '' })
+    setStockErrors({})
+    setIsStockModalOpen(true)
+  }
+
+  const closeStockModal = () => {
+    setIsStockModalOpen(false)
+    setStockAdjustProduct(null)
+    setStockFormData({ tipo: 'entrada', cantidad: '', motivo: '' })
+    setStockErrors({})
+  }
+
+  const validateStockForm = () => {
+    const newErrors: { cantidad?: string; motivo?: string } = {}
+    
+    const cantidad = parseInt(stockFormData.cantidad, 10)
+    if (!stockFormData.cantidad || isNaN(cantidad) || cantidad <= 0) {
+      newErrors.cantidad = 'Cantidad requerida (mayor a 0)'
+    }
+
+    if (stockFormData.tipo === 'salida' && stockAdjustProduct) {
+      const cantidad = parseInt(stockFormData.cantidad, 10)
+      if (cantidad > stockAdjustProduct.stock_actual) {
+        newErrors.cantidad = `Stock insuficiente. Disponible: ${stockAdjustProduct.stock_actual}`
+      }
+    }
+    
+    setStockErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleStockSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!validateStockForm() || !stockAdjustProduct) return
+    
+    setStockSubmitting(true)
+
+    try {
+      const response = await fetch('/api/stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_id: stockAdjustProduct.id,
+          tipo: stockFormData.tipo,
+          cantidad: parseInt(stockFormData.cantidad, 10),
+          motivo: stockFormData.motivo.trim() || undefined,
+        } as StockAdjustment),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al ajustar stock')
+      }
+
+      // Update local product list with new stock
+      setProductList(
+        productList.map((p) =>
+          p.id === stockAdjustProduct.id
+            ? { ...p, stock_actual: result.product.stock_actual, updated_at: result.product.updated_at }
+            : p
+        )
+      )
+
+      // Also update the selected product in detail modal if open
+      if (selectedProduct && selectedProduct.id === stockAdjustProduct.id) {
+        setSelectedProduct({ ...selectedProduct, stock_actual: result.product.stock_actual, updated_at: result.product.updated_at })
+      }
+
+      toast.success('Stock actualizado correctamente', {
+        icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
+      })
+
+      closeStockModal()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al ajustar stock')
+    } finally {
+      setStockSubmitting(false)
+    }
   }
 
   const closeCategoryModal = () => {
@@ -273,7 +385,7 @@ export default function AdminDashboard({
     }
   }, [isModalOpen, isCategoryModalOpen, isDetailModalOpen])
 
-  const isFormValid = formData.name.trim() && formData.price && parseFloat(formData.price) >= 0
+  const isFormValid = formData.name.trim() && formData.price && parseFloat(formData.price) >= 0 && formData.stock_actual !== '' && formData.stock_minimo !== '' && parseInt(formData.stock_actual, 10) >= 0 && parseInt(formData.stock_minimo, 10) >= 0
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark">
@@ -336,13 +448,18 @@ export default function AdminDashboard({
                         <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider hidden lg:table-cell">
                           Categoría
                         </th>
+                        <th scope="col" className="px-4 sm:px-6 py-3 text-center text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider hidden sm:table-cell">
+                          Stock
+                        </th>
                         <th scope="col" className="px-4 sm:px-6 py-3 text-right text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
                           Acciones
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-surface-light dark:divide-dark-200">
-                      {filteredProducts.map((product) => (
+                      {filteredProducts.map((product) => {
+                        const stockStatus = getStockStatus(product)
+                        return (
                         <tr 
                           key={product.id} 
                           onClick={() => openDetailModal(product)}
@@ -358,6 +475,16 @@ export default function AdminDashboard({
                             <span className={`badge ${getCategoryColor(product.category_id)}`}>
                               {getCategoryName(product.category_id)}
                             </span>
+                          </td>
+                          <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-center hidden sm:table-cell">
+                            <div className="flex items-center justify-center gap-2">
+                              <span className={`font-mono font-semibold text-body ${stockStatus === 'sin_stock' ? 'text-red-500' : stockStatus === 'critico' ? 'text-orange-500' : stockStatus === 'bajo' ? 'text-yellow-500' : 'text-green-500'}`}>
+                                {product.stock_actual}
+                              </span>
+                              <span className={`badge ${getStockStatusColor(stockStatus)} text-xs px-2 py-0.5`}>
+                                {getStockStatusLabel(stockStatus)}
+                              </span>
+                            </div>
                           </td>
                           <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right">
                             <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -376,6 +503,13 @@ export default function AdminDashboard({
                                 <Edit2 className="w-4 h-4" aria-hidden="true" />
                               </button>
                               <button
+                                onClick={() => openStockModal(product)}
+                                className="btn-ghost p-2 touch-target text-primary hover:bg-primary/10"
+                                aria-label={`Ajustar stock de ${product.name}`}
+                              >
+                                <Package className="w-4 h-4" aria-hidden="true" />
+                              </button>
+                              <button
                                 onClick={() => handleProductDelete(product.id)}
                                 className="btn-ghost p-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 touch-target"
                                 aria-label={`Eliminar producto ${product.name}`}
@@ -385,14 +519,17 @@ export default function AdminDashboard({
                             </div>
                           </td>
                         </tr>
-                      ))}
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
 
                 {/* Mobile Card View */}
                 <div className="lg:hidden">
-                  {filteredProducts.map((product) => (
+                  {filteredProducts.map((product) => {
+                    const stockStatus = getStockStatus(product)
+                    return (
                     <article 
                       key={product.id} 
                       onClick={() => openDetailModal(product)}
@@ -409,6 +546,14 @@ export default function AdminDashboard({
                             </span>
                             <span className={`badge ${getCategoryColor(product.category_id)} text-xs`}>
                               {getCategoryName(product.category_id)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className={`font-mono text-sm ${stockStatus === 'sin_stock' ? 'text-red-500' : stockStatus === 'critico' ? 'text-orange-500' : stockStatus === 'bajo' ? 'text-yellow-500' : 'text-green-500'}`}>
+                              Stock: {product.stock_actual}
+                            </span>
+                            <span className={`badge ${getStockStatusColor(stockStatus)} text-xs px-2 py-0.5`}>
+                              {getStockStatusLabel(stockStatus)}
                             </span>
                           </div>
                         </div>
@@ -428,6 +573,13 @@ export default function AdminDashboard({
                             <Edit2 className="w-4 h-4" aria-hidden="true" />
                           </button>
                           <button
+                            onClick={(e) => { e.stopPropagation(); openStockModal(product); }}
+                            className="btn-ghost p-2 touch-target text-primary hover:bg-primary/10"
+                            aria-label={`Ajustar stock de ${product.name}`}
+                          >
+                            <Package className="w-4 h-4" aria-hidden="true" />
+                          </button>
+                          <button
                             onClick={(e) => { e.stopPropagation(); handleProductDelete(product.id); }}
                             className="btn-ghost p-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 touch-target"
                             aria-label={`Eliminar ${product.name}`}
@@ -437,7 +589,8 @@ export default function AdminDashboard({
                         </div>
                       </div>
                     </article>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 {/* Empty State */}
@@ -626,6 +779,66 @@ export default function AdminDashboard({
                     </p>
                   )}
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label 
+                      htmlFor="product-stock-actual" 
+                      className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-1.5"
+                    >
+                      Stock actual <span className="text-red-500" aria-hidden="true">*</span>
+                    </label>
+                    <input
+                      id="product-stock-actual"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={formData.stock_actual}
+                      onChange={(e) => {
+                        setFormData({ ...formData, stock_actual: e.target.value })
+                        if (errors.stock_actual) setErrors({ ...errors, stock_actual: undefined })
+                      }}
+                      placeholder="0"
+                      className={`input-field ${errors.stock_actual ? 'border-red-500 focus:ring-red-500' : ''}`}
+                      aria-describedby={errors.stock_actual ? 'product-stock-actual-error' : undefined}
+                      aria-invalid={!!errors.stock_actual}
+                    />
+                    {errors.stock_actual && (
+                      <p id="product-stock-actual-error" className="mt-1.5 text-caption text-red-500 flex items-center gap-1" role="alert">
+                        <AlertCircle className="w-3.5 h-3.5" aria-hidden="true" />
+                        {errors.stock_actual}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label 
+                      htmlFor="product-stock-minimo" 
+                      className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-1.5"
+                    >
+                      Stock mínimo <span className="text-red-500" aria-hidden="true">*</span>
+                    </label>
+                    <input
+                      id="product-stock-minimo"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={formData.stock_minimo}
+                      onChange={(e) => {
+                        setFormData({ ...formData, stock_minimo: e.target.value })
+                        if (errors.stock_minimo) setErrors({ ...errors, stock_minimo: undefined })
+                      }}
+                      placeholder="5"
+                      className={`input-field ${errors.stock_minimo ? 'border-red-500 focus:ring-red-500' : ''}`}
+                      aria-describedby={errors.stock_minimo ? 'product-stock-minimo-error' : undefined}
+                      aria-invalid={!!errors.stock_minimo}
+                    />
+                    {errors.stock_minimo && (
+                      <p id="product-stock-minimo-error" className="mt-1.5 text-caption text-red-500 flex items-center gap-1" role="alert">
+                        <AlertCircle className="w-3.5 h-3.5" aria-hidden="true" />
+                        {errors.stock_minimo}
+                      </p>
+                    )}
+                  </div>
+                </div>
                 <div>
                   <label 
                     htmlFor="product-category" 
@@ -738,6 +951,136 @@ export default function AdminDashboard({
           </div>
         )}
 
+        {/* Stock Adjustment Modal */}
+        {isStockModalOpen && stockAdjustProduct && (
+          <div 
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-3 sm:p-4 z-50"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="stock-modal-title"
+          >
+            <div 
+              ref={stockModalRef}
+              className="card w-full max-w-md shadow-elevation-4 animate-scale-in"
+            >
+              <div className="flex justify-between items-center mb-4 pb-4 border-b border-surface-light dark:border-dark-200">
+                <h2 id="stock-modal-title" className="text-heading text-text-primary-light dark:text-text-primary-dark">Ajustar Stock</h2>
+                <button 
+                  onClick={closeStockModal} 
+                  className="p-2 text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark hover:bg-surface-light dark:hover:bg-dark-200 rounded-lg transition-colors duration-150 touch-target"
+                  aria-label="Cerrar modal"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form onSubmit={handleStockSubmit} className="space-y-4">
+                <div className="bg-surface-light dark:bg-dark-200/50 rounded-lg p-4">
+                  <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Producto</p>
+                  <p className="text-body font-medium text-text-primary-light dark:text-text-primary-dark">{stockAdjustProduct.name}</p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className={`font-mono text-display font-bold ${getStockStatus(stockAdjustProduct) === 'sin_stock' ? 'text-red-500' : getStockStatus(stockAdjustProduct) === 'critico' ? 'text-orange-500' : getStockStatus(stockAdjustProduct) === 'bajo' ? 'text-yellow-500' : 'text-green-500'}`}>
+                      Stock actual: {stockAdjustProduct.stock_actual}
+                    </span>
+                    <span className={`badge ${getStockStatusColor(getStockStatus(stockAdjustProduct))} text-xs`}>
+                      {getStockStatusLabel(getStockStatus(stockAdjustProduct))}
+                    </span>
+                  </div>
+                  <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark mt-1">Stock mínimo: {stockAdjustProduct.stock_minimo}</p>
+                </div>
+                <div>
+                  <label 
+                    htmlFor="stock-tipo" 
+                    className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-1.5"
+                  >
+                    Tipo de movimiento <span className="text-red-500" aria-hidden="true">*</span>
+                  </label>
+                  <select
+                    id="stock-tipo"
+                    value={stockFormData.tipo}
+                    onChange={(e) => setStockFormData({ ...stockFormData, tipo: e.target.value as 'entrada' | 'salida' | 'ajuste' })}
+                    className="input-field"
+                  >
+                    <option value="entrada">Entrada (sumar al stock)</option>
+                    <option value="salida">Salida (restar del stock)</option>
+                    <option value="ajuste">Ajuste (establecer valor exacto)</option>
+                  </select>
+                </div>
+                <div>
+                  <label 
+                    htmlFor="stock-cantidad" 
+                    className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-1.5"
+                  >
+                    Cantidad <span className="text-red-500" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="stock-cantidad"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={stockFormData.cantidad}
+                    onChange={(e) => {
+                      setStockFormData({ ...stockFormData, cantidad: e.target.value })
+                      if (stockErrors.cantidad) setStockErrors({ ...stockErrors, cantidad: undefined })
+                    }}
+                    placeholder={stockFormData.tipo === 'ajuste' ? 'Nuevo valor de stock' : 'Cantidad a agregar/restar'}
+                    className={`input-field ${stockErrors.cantidad ? 'border-red-500 focus:ring-red-500' : ''}`}
+                    aria-describedby={stockErrors.cantidad ? 'stock-cantidad-error' : undefined}
+                    aria-invalid={!!stockErrors.cantidad}
+                  />
+                  {stockErrors.cantidad && (
+                    <p id="stock-cantidad-error" className="mt-1.5 text-caption text-red-500 flex items-center gap-1" role="alert">
+                      <AlertCircle className="w-3.5 h-3.5" aria-hidden="true" />
+                      {stockErrors.cantidad}
+                    </p>
+                  )}
+                  <p className="mt-1.5 text-caption text-text-secondary-light dark:text-text-secondary-dark">
+                    {stockFormData.tipo === 'entrada' && 'Se sumará al stock actual'}
+                    {stockFormData.tipo === 'salida' && `Se restará del stock actual (máx: ${stockAdjustProduct.stock_actual})`}
+                    {stockFormData.tipo === 'ajuste' && 'Establecerá el stock a este valor exacto'}
+                  </p>
+                </div>
+                <div>
+                  <label 
+                    htmlFor="stock-motivo" 
+                    className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-1.5"
+                  >
+                    Motivo (opcional)
+                  </label>
+                  <input
+                    id="stock-motivo"
+                    type="text"
+                    value={stockFormData.motivo}
+                    onChange={(e) => setStockFormData({ ...stockFormData, motivo: e.target.value })}
+                    placeholder="Ej: Recepción de mercadería, Venta, Inventario..."
+                    className="input-field"
+                  />
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <button
+                    type="submit"
+                    disabled={stockSubmitting || !stockFormData.cantidad}
+                    className="btn-primary flex-1 flex items-center justify-center gap-2 touch-target py-3"
+                  >
+                    {stockSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                        Guardando...
+                      </>
+                    ) : 'Aplicar ajuste'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeStockModal}
+                    className="btn-ghost flex-1 touch-target py-3"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Detail Modal */}
         {isDetailModalOpen && selectedProduct && (
           <div 
@@ -776,9 +1119,36 @@ export default function AdminDashboard({
                   </span>
                 </div>
                 <div>
+                  <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Stock actual</p>
+                  <div className="flex items-center gap-3">
+                    <span className={`font-mono text-display font-bold ${getStockStatus(selectedProduct) === 'sin_stock' ? 'text-red-500' : getStockStatus(selectedProduct) === 'critico' ? 'text-orange-500' : getStockStatus(selectedProduct) === 'bajo' ? 'text-yellow-500' : 'text-green-500'}`}>
+                      {selectedProduct.stock_actual}
+                    </span>
+                    <span className={`badge ${getStockStatusColor(getStockStatus(selectedProduct))}`}>
+                      {getStockStatusLabel(getStockStatus(selectedProduct))}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Stock mínimo</p>
+                  <p className="text-body font-medium text-text-primary-light dark:text-text-primary-dark">{selectedProduct.stock_minimo}</p>
+                </div>
+                <div>
                   <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Fecha de creación</p>
                   <p className="text-body text-text-primary-light dark:text-text-primary-dark">
                     {new Date(selectedProduct.created_at).toLocaleDateString('es-AR', { 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Fecha de actualización</p>
+                  <p className="text-body text-text-primary-light dark:text-text-primary-dark">
+                    {new Date(selectedProduct.updated_at).toLocaleDateString('es-AR', { 
                       year: 'numeric', 
                       month: 'long', 
                       day: 'numeric',
@@ -811,6 +1181,17 @@ export default function AdminDashboard({
                 >
                   <Edit2 className="w-4 h-4" aria-hidden="true" />
                   Editar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeDetailModal()
+                    openStockModal(selectedProduct)
+                  }}
+                  className="btn-secondary flex-1 flex items-center justify-center gap-2 touch-target py-3"
+                >
+                  <Package className="w-4 h-4" aria-hidden="true" />
+                  Ajustar Stock
                 </button>
                 <button
                   type="button"
