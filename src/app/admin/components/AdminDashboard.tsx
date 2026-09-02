@@ -237,8 +237,8 @@ export default function AdminDashboard({
       name: product.name,
       price: product.price.toString(),
       category_id: product.category_id || '',
-      stock_actual: product.stock_actual.toString(),
-      stock_minimo: product.stock_minimo.toString(),
+      stock_actual: (product.stock_actual ?? 0).toString(),
+      stock_minimo: (product.stock_minimo ?? 5).toString(),
     })
     setErrors({})
     setIsModalOpen(true)
@@ -479,7 +479,7 @@ export default function AdminDashboard({
                           <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-center hidden sm:table-cell">
                             <div className="flex items-center justify-center gap-2">
                               <span className={`font-mono font-semibold text-body ${stockStatus === 'sin_stock' ? 'text-red-500' : stockStatus === 'critico' ? 'text-orange-500' : stockStatus === 'bajo' ? 'text-yellow-500' : 'text-green-500'}`}>
-                                {product.stock_actual}
+                                {product.stock_actual ?? 0}
                               </span>
                               <span className={`badge ${getStockStatusColor(stockStatus)} text-xs px-2 py-0.5`}>
                                 {getStockStatusLabel(stockStatus)}
@@ -550,7 +550,7 @@ export default function AdminDashboard({
                           </div>
                           <div className="flex items-center gap-2 mt-2">
                             <span className={`font-mono text-sm ${stockStatus === 'sin_stock' ? 'text-red-500' : stockStatus === 'critico' ? 'text-orange-500' : stockStatus === 'bajo' ? 'text-yellow-500' : 'text-green-500'}`}>
-                              Stock: {product.stock_actual}
+                              Stock: {product.stock_actual ?? 0}
                             </span>
                             <span className={`badge ${getStockStatusColor(stockStatus)} text-xs px-2 py-0.5`}>
                               {getStockStatusLabel(stockStatus)}
@@ -979,13 +979,13 @@ export default function AdminDashboard({
                   <p className="text-body font-medium text-text-primary-light dark:text-text-primary-dark">{stockAdjustProduct.name}</p>
                   <div className="flex items-center gap-3 mt-2">
                     <span className={`font-mono text-display font-bold ${getStockStatus(stockAdjustProduct) === 'sin_stock' ? 'text-red-500' : getStockStatus(stockAdjustProduct) === 'critico' ? 'text-orange-500' : getStockStatus(stockAdjustProduct) === 'bajo' ? 'text-yellow-500' : 'text-green-500'}`}>
-                      Stock actual: {stockAdjustProduct.stock_actual}
+                      Stock actual: {stockAdjustProduct.stock_actual ?? 0}
                     </span>
                     <span className={`badge ${getStockStatusColor(getStockStatus(stockAdjustProduct))} text-xs`}>
                       {getStockStatusLabel(getStockStatus(stockAdjustProduct))}
                     </span>
                   </div>
-                  <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark mt-1">Stock mínimo: {stockAdjustProduct.stock_minimo}</p>
+                  <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark mt-1">Stock mínimo: {stockAdjustProduct.stock_minimo ?? 5}</p>
                 </div>
                 <div>
                   <label 
@@ -1122,7 +1122,7 @@ export default function AdminDashboard({
                   <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Stock actual</p>
                   <div className="flex items-center gap-3">
                     <span className={`font-mono text-display font-bold ${getStockStatus(selectedProduct) === 'sin_stock' ? 'text-red-500' : getStockStatus(selectedProduct) === 'critico' ? 'text-orange-500' : getStockStatus(selectedProduct) === 'bajo' ? 'text-yellow-500' : 'text-green-500'}`}>
-                      {selectedProduct.stock_actual}
+                      {selectedProduct.stock_actual ?? 0}
                     </span>
                     <span className={`badge ${getStockStatusColor(getStockStatus(selectedProduct))}`}>
                       {getStockStatusLabel(getStockStatus(selectedProduct))}
@@ -1131,7 +1131,7 @@ export default function AdminDashboard({
                 </div>
                 <div>
                   <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Stock mínimo</p>
-                  <p className="text-body font-medium text-text-primary-light dark:text-text-primary-dark">{selectedProduct.stock_minimo}</p>
+                  <p className="text-body font-medium text-text-primary-light dark:text-text-primary-dark">{selectedProduct.stock_minimo ?? 5}</p>
                 </div>
                 <div>
                   <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Fecha de creación</p>

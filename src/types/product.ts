@@ -37,9 +37,11 @@ export interface StockAdjustment {
 export type StockStatus = 'normal' | 'bajo' | 'critico' | 'sin_stock'
 
 export function getStockStatus(product: Product): StockStatus {
-  if (product.stock_actual <= 0) return 'sin_stock'
-  if (product.stock_actual <= product.stock_minimo) return 'critico'
-  if (product.stock_actual <= product.stock_minimo * 2) return 'bajo'
+  const stockActual = product.stock_actual ?? 0
+  const stockMinimo = product.stock_minimo ?? 5
+  if (stockActual <= 0) return 'sin_stock'
+  if (stockActual <= stockMinimo) return 'critico'
+  if (stockActual <= stockMinimo * 2) return 'bajo'
   return 'normal'
 }
 
