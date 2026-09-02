@@ -74,7 +74,16 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (updateError) {
-      return NextResponse.json({ error: 'Error al actualizar stock' }, { status: 500 })
+      console.error('Supabase update error:', {
+        message: updateError.message,
+        details: updateError.details,
+        hint: updateError.hint,
+        code: updateError.code
+      })
+      return NextResponse.json({ 
+        error: 'Error al actualizar stock', 
+        details: updateError.message 
+      }, { status: 500 })
     }
 
     // Record stock movement
@@ -91,7 +100,12 @@ export async function POST(request: NextRequest) {
       })
 
     if (movementError) {
-      console.error('Error recording stock movement:', movementError)
+      console.error('Supabase movement insert error:', {
+        message: movementError.message,
+        details: movementError.details,
+        hint: movementError.hint,
+        code: movementError.code
+      })
       // Don't fail the request if movement logging fails
     }
 

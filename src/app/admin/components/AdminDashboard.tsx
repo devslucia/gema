@@ -131,7 +131,10 @@ export default function AdminDashboard({
         })
         .eq('id', editingProduct.id)
 
-      if (!error) {
+      if (error) {
+        console.error('Error updating product:', error)
+        toast.error(`Error al actualizar: ${error.message}`)
+      } else {
         setProductList(
           productList.map((p) =>
             p.id === editingProduct.id
@@ -149,7 +152,10 @@ export default function AdminDashboard({
         .insert(productData)
         .select()
 
-      if (!error && data) {
+      if (error) {
+        console.error('Error inserting product:', error)
+        toast.error(`Error al crear: ${error.message}`)
+      } else if (data) {
         setProductList([data[0], ...productList])
         toast.success('Producto agregado correctamente', {
           icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
