@@ -1,7 +1,8 @@
 'use client'
 
 import { useTheme } from './ThemeProvider'
-import { Sun, Moon, LogIn, LogOut, LayoutDashboard } from 'lucide-react'
+import { useCart } from '@/components/cart/cart-context'
+import { Sun, Moon, LogOut, LayoutDashboard, LogIn } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { logout } from '@/app/actions'
@@ -12,6 +13,7 @@ interface NavbarProps {
 
 export default function Navbar({ isAuthenticated = false }: NavbarProps) {
   const { theme, toggleTheme } = useTheme()
+  const { cart } = useCart()
 
   return (
     <header 
@@ -85,6 +87,13 @@ export default function Navbar({ isAuthenticated = false }: NavbarProps) {
               )}
             </button>
           </nav>
+          {cart.length > 0 && (
+            <span className="ml-2 text-caption text-text-secondary-light dark:text-text-secondary-dark">
+              <span className="bg-primary/20 text-primary rounded px-2 py-0.5 text-caption">
+                {cart.length}
+              </span>
+            </span>
+          )}
         </div>
       </div>
     </header>

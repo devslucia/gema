@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { CartProvider } from "@/components/cart/cart-context";
 import Navbar from "@/components/Navbar";
 import { Toaster } from "@/components/Toaster";
 import Footer from "@/components/Footer";
@@ -41,10 +42,12 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark`}
       >
         <ThemeProvider>
-          <Navbar isAuthenticated={isAuthenticated} />
-          <main id="main-content" role="main" className="min-h-screen">
-            {children}
-          </main>
+          <CartProvider>
+            <Navbar isAuthenticated={isAuthenticated} />
+            <main id="main-content" role="main" className="min-h-screen">
+              {children}
+            </main>
+          </CartProvider>
           <Footer />
           <Toaster />
         </ThemeProvider>
