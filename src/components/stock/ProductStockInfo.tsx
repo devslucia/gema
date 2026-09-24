@@ -1,29 +1,19 @@
 'use client'
 
 import { Product } from '@/types/product'
-import { formatPriceARS } from '@/lib/utils'
 
 interface ProductStockInfoProps {
   product: Product
-  categories: any[]
   onStockAction: (productId: string, type: 'entry' | 'exit' | 'adjustment') => void
-}
-
-const getCategoryName = (categoryId: string | null, categories: any[]) => {
-  if (!categoryId) return 'Sin categoría'
-  const category = categories.find((c: { id: string }) => c.id === categoryId)
-  return category?.name || 'Desconocida'
 }
 
 export default function ProductStockInfo({
   product,
-  categories,
   onStockAction,
 }: ProductStockInfoProps) {
-  const stock = product.stock ?? 0
+  const stock = product.stock_actual ?? 0
   const stockMinimo = product.stock_minimo ?? 5
   const isLowStock = stock <= stockMinimo && stock > 0
-  const categoryName = getCategoryName(product.category_id, categories)
 
   return (
     <div className="flex items-center gap-3">

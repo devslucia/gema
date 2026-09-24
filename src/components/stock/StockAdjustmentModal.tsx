@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Product } from '@/types/product'
 import { CheckCircle2, X, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 

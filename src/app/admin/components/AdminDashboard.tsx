@@ -1154,13 +1154,13 @@ export default function AdminDashboard({
                 <div>
                   <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Fecha de actualización</p>
                   <p className="text-body text-text-primary-light dark:text-text-primary-dark">
-                    {new Date(selectedProduct.updated_at).toLocaleDateString('es-AR', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
+                    {selectedProduct.updated_at ? new Date(selectedProduct.updated_at).toLocaleDateString('es-AR', { 
+  year: 'numeric', 
+  month: 'long', 
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit'
+}) : 'N/A'}
                   </p>
                 </div>
                 <div>
