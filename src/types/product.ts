@@ -64,3 +64,35 @@ export function getStockStatusColor(stockStatus: StockStatus): string {
   }
   return colors[stockStatus]
 }
+
+export interface Order {
+  id: string
+  user_id: string | null
+  status: 'pending' | 'paid' | 'cancelled' | 'refunded'
+  total: number
+  mp_preference_id: string | null
+  mp_payment_id: string | null
+  customer_name: string
+  customer_email: string
+  customer_phone: string | null
+  created_at: string
+  updated_at: string | null
+}
+
+export interface OrderItem {
+  id: string
+  order_id: string
+  product_id: string
+  product_name: string
+  unit_price: number
+  quantity: number
+  subtotal: number
+}
+
+export interface CartItem {
+  product_id: string
+  product_name: string
+  price: number
+  quantity: number
+  subtotal: number
+}

@@ -83,3 +83,82 @@ CREATE INDEX IF NOT EXISTS idx_products_name_gin ON products USING GIN (name gin
 CREATE INDEX IF NOT EXISTS idx_products_stock_minimo ON products (stock_minimo) WHERE stock_actual <= stock_minimo;
 CREATE INDEX IF NOT EXISTS idx_stock_movements_product_id ON stock_movements (product_id);
 CREATE INDEX IF NOT EXISTS idx_stock_movements_created_at ON stock_movements (created_at DESC);
+-- ============================================================
+-- TABLE: orders
+-- ============================================================
+CREATE TABLE IF NOT EXISTS orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'cancelled', 'refunded')),
+  total NUMERIC(12,2) NOT NULL DEFAULT 0,
+  mp_preference_id TEXT UNIQUE,
+  mp_payment_id TEXT,
+  customer_name TEXT,
+  customer_email TEXT,
+  customer_phone TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+
+-- Policies for orders
+-- Public can view orders (for admin panel with proper auth)
+CREATE POLICY "Authenticated can view orders" ON orders
+FOR SELECT TO authenticated USING (true);
+-- Authenticated can insert orders (from checkout)
+CREATE POLICY "Authenticated can insert orders" ON orders
+FOR INSERT TO authenticated WITH CHECK (true);
+-- Authenticated can update orders (status, mp IDs)
+CREATE POLICY "Authenticated can update orders" ON orders
+FOR UPDATE TO authenticated USING (true);
+
+-- Index on status for admin filtering
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders (status);
+CREATE INDEX IF NOT EXISTS idx_orders_user ON orders (user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_mp ON orders (mp_preference_id);
+
+-- ============================================================
+-- TABLE: order_items
+-- ============================================================
+CREATE TABLE IF NOT EXISTS order_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+  product_name TEXT NOT NULL,
+  unit_price NUMERIC(10,2) NOT NULL,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  subtotal NUMERIC(12,2) NOT NULL DEFAULT 0
+);
+
+-- Enable RLS
+ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
+
+-- Policies for order_items
+CREATE POLICY "Authenticated can view order_items" ON order_items
+FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Authenticated can insert order_items" ON order_items
+FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Authenticated can update order_items" ON order_items
+FOR UPDATE TO authenticated USING (true);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items (order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_product ON order_items (product_id);
+
+-- ============================================================
+-- Trigger to update orders.updated_at
+-- ==========================================================--
+CREATE OR REPLACE FUNCTION update_orders_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_orders_updated_at
+BEFORE UPDATE ON orders
+FOR EACH ROW
+EXECUTE FUNCTION update_orders_updated_at();
