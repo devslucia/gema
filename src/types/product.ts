@@ -16,12 +16,51 @@ export interface Product {
   id: string
   name: string
   price: number
-  stock: number
+  stock_actual: number
   stock_minimo: number
   category_id: string | null
   created_at: string
+  updated_at?: Date | string | null
 }
 
 export interface ProductWithCategory extends Product {
   category: Category | null
+}
+
+export type StockStatus = 'sin_stock' | 'bajo' | 'critico' | 'ok'
+
+export interface StockAdjustment {
+  product_id: string
+  tipo: 'entrada' | 'salida' | 'ajuste'
+  cantidad: number
+  motivo?: string
+}
+
+export function getStockStatus(product: Product): StockStatus {
+  const stock = product.stock_actual ?? 0
+  const stockMinimo = product.stock_minimo ?? 5
+  if (stock === 0) return 'sin_stock'
+  if (stock <= stockMinimo * 0.3) return 'critico'
+  if (stock <= stockMinimo) return 'bajo'
+  return 'ok'
+}
+
+export function getStockStatusLabel(stockStatus: StockStatus): string {
+  const labels: Record<StockStatus, string> = {
+    sin_stock: 'Sin stock',
+    critico: 'Crítico',
+    bajo: 'Bajo stock',
+    ok: 'Suficiente'
+  }
+  return labels[stockStatus]
+}
+
+export function getStockStatusColor(stockStatus: StockStatus): string {
+  const colors: Record<StockStatus, string> = {
+    sin_stock: 'text-red-500',
+    critico: 'text-orange-500',
+    bajo: 'text-yellow-500',
+    ok: 'text-green-500'
+  }
+  return colors[stockStatus]
 }
