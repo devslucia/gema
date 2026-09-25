@@ -2,7 +2,7 @@
 
 import { useTheme } from './ThemeProvider'
 import { useCart } from '@/components/cart/cart-context'
-import { Sun, Moon, LogOut, LayoutDashboard, LogIn } from 'lucide-react'
+import { Sun, Moon, LogOut, LayoutDashboard, LogIn, ShoppingCart } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { logout } from '@/app/actions'
@@ -88,11 +88,19 @@ export default function Navbar({ isAuthenticated = false }: NavbarProps) {
             </button>
           </nav>
           {cart.length > 0 && (
-            <span className="ml-2 text-caption text-text-secondary-light dark:text-text-secondary-dark">
-              <span className="bg-primary/20 text-primary rounded px-2 py-0.5 text-caption">
+            <a
+              href="/cart"
+              className="relative inline-block hover:underline"
+              aria-label="Ver carrito"
+            >
+              <ShoppingCart
+                className="w-6 h-6 text-primary dark:text-primary-400"
+                aria-hidden="true"
+              />
+              <span className="absolute -top-0.5 -right-0.5 bg-primary text-xs font-bold text-white rounded-w-full w-5 h-5 flex items-center justify-center">
                 {cart.length}
               </span>
-            </span>
+            </a>
           )}
         </div>
       </div>
