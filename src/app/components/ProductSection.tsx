@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { useCart } from '@/components/cart/cart-context'
 import { Product } from '@/types/product'
 import { Category } from '@/types/category'
 import { formatPriceARS } from '@/lib/utils'
-import { X, MapPin } from 'lucide-react'
+import { X, MapPin, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 
 interface ProductSectionProps {
@@ -34,6 +35,7 @@ export default function ProductSection({
 }: ProductSectionProps) {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const { cart, addToCart } = useCart()
   
   const categoryName = category?.name || 'Sin categoría'
   const colorClass = getCategoryColor(categoryIndex)
@@ -86,9 +88,46 @@ export default function ProductSection({
             <p className="text-display text-primary mb-4 font-bold">
               {formatPriceARS(product.price)}
             </p>
-            <span className="inline-block text-xs px-2.5 py-1 rounded-full bg-secondary/20 text-secondary dark:bg-secondary/30 dark:text-secondary-100">
-              {categoryName}
-            </span>
+            <div className="flex items-center gap-2 text-xs">
+              <span className={`inline-block text-xs px-2.5 py-1 rounded-full bg-secondary/20 text-secondary dark:bg-secondary/30 dark:text-secondary-100`}>
+                {categoryName}
+              </span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  addToCart({
+                    product_id: product.id,
+                    product_name: product.name,
+                    price: product.price,
+                  })
+                }}
+                className={`p-1.5 rounded-lg transition-colors duration-150 ${
+                  cart.some((item) => item.product_id === product.id)
+                    ? 'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary-100'
+                    : 'bg-secondary/20 text-secondary dark:bg-secondary/30 dark:text-secondary-100'
+                }`}
+                title="Agregar al carrito"
+                aria-label="Agregar ${product.name} al carrito"
+              >
+                {cart.some((item) => item.product_id === product.id) ? (
+                  <CheckCircle className="w-3.5 h-3.5" />
+                ) : (
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 5v.01M12 12v.01M12 19v.01My2 3a5 5 0 015 5h1a5 5 0 110 10h-1a5 5 0 110-10M3 12a5 5 0 100 10h1a5 5 0 100-10zM5 10a2 2 0 10-4 0 2 2 0 004 0z"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
           </article>
         ))}
       </div>
