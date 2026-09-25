@@ -16,14 +16,14 @@ export default function Navbar({ isAuthenticated = false }: NavbarProps) {
   const { cart } = useCart()
 
   return (
-    <header 
+    <header
       className="bg-surface-light dark:bg-surface-dark shadow-sm border-b border-primary/20 dark:border-primary/30"
       role="banner"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="flex items-center gap-3 group"
             aria-label="GEMA - Ir al catálogo"
           >
@@ -38,8 +38,8 @@ export default function Navbar({ isAuthenticated = false }: NavbarProps) {
             </div>
             <span className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark hidden sm:inline">GEMA</span>
           </Link>
-          
-          <nav 
+
+          <nav
             className="flex items-center gap-2 sm:gap-4"
             role="navigation"
             aria-label="Navegación principal"
@@ -75,11 +75,26 @@ export default function Navbar({ isAuthenticated = false }: NavbarProps) {
                 <span className="hidden sm:inline">Admin</span>
               </Link>
             )}
-          <button
-                  onClick={toggleTheme}
-                  className="p-2.5 min-w-[44px] min-h-[44px] rounded-lg bg-surface-light dark:bg-dark-50 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/20 dark:hover:bg-primary/20 hover:text-primary dark:hover:text-primary transition-all hover:scale-105 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                  aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-                >
+
+            {/* Carrito — siempre visible, badge condicional */}
+            <Link
+              href="/cart"
+              className="relative p-2 rounded-lg hover:bg-primary/10 transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              aria-label={`Ver carrito${cart.length > 0 ? ` (${cart.length} productos)` : ''}`}
+            >
+              <ShoppingCart className="w-5 h-5 text-text-secondary-light dark:text-text-secondary-dark" aria-hidden="true" />
+              {cart.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-primary text-xs font-bold text-white rounded-full w-5 h-5 flex items-center justify-center">
+                  {cart.length}
+                </span>
+              )}
+            </Link>
+
+            <button
+              onClick={toggleTheme}
+              className="p-2.5 min-w-[44px] min-h-[44px] rounded-lg bg-surface-light dark:bg-dark-50 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/20 dark:hover:bg-primary/20 hover:text-primary dark:hover:text-primary transition-all hover:scale-105 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+            >
               {theme === 'dark' ? (
                 <Sun className="w-5 h-5" aria-hidden="true" />
               ) : (
@@ -87,21 +102,6 @@ export default function Navbar({ isAuthenticated = false }: NavbarProps) {
               )}
             </button>
           </nav>
-          {cart.length > 0 && (
-            <a
-              href="/cart"
-              className="relative inline-block hover:underline"
-              aria-label="Ver carrito"
-            >
-              <ShoppingCart
-                className="w-6 h-6 text-primary dark:text-primary-400"
-                aria-hidden="true"
-              />
-              <span className="absolute -top-0.5 -right-0.5 bg-primary text-xs font-bold text-white rounded-w-full w-5 h-5 flex items-center justify-center">
-                {cart.length}
-              </span>
-            </a>
-          )}
         </div>
       </div>
     </header>
