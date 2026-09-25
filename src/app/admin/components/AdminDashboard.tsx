@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useRef } from 'react'
 import { Product } from '@/types/product'
 import { Category } from '@/types/category'
-import { Plus, Trash2, X, Package, Folder, AlertCircle, Edit2, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Search, Eye, MapPin } from 'lucide-react'
+import { Plus, Trash2, X, Package, Folder, AlertCircle, Edit2, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Search, Eye, MapPin, ShoppingBag } from 'lucide-react'
 import { formatPriceARS } from '@/lib/utils'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -83,11 +83,11 @@ export default function AdminDashboard({
 
   const validateProductForm = () => {
     const newErrors: { name?: string; price?: string; category?: string; stock_actual?: string; stock_minimo?: string } = {}
-    
+
     if (!formData.name.trim()) {
       newErrors.name = 'El nombre es requerido'
     }
-    
+
     const price = parseFloat(formData.price)
     if (!formData.price || isNaN(price) || price < 0) {
       newErrors.price = 'Ingresa un precio válido'
@@ -102,16 +102,16 @@ export default function AdminDashboard({
     if (formData.stock_minimo === '' || isNaN(stockMinimo) || stockMinimo < 0) {
       newErrors.stock_minimo = 'Stock mínimo inválido'
     }
-    
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!validateProductForm()) return
-    
+
     setSubmitting(true)
 
     const productData = {
@@ -184,7 +184,7 @@ export default function AdminDashboard({
 
   const handleCategorySubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!newCategoryName.trim()) {
       toast.error('El nombre de la categoría es requerido')
       return
@@ -273,7 +273,7 @@ export default function AdminDashboard({
 
   const validateStockForm = () => {
     const newErrors: { cantidad?: string; motivo?: string } = {}
-    
+
     const cantidad = parseInt(stockFormData.cantidad, 10)
     if (!stockFormData.cantidad || isNaN(cantidad) || cantidad <= 0) {
       newErrors.cantidad = 'Cantidad requerida (mayor a 0)'
@@ -285,16 +285,16 @@ export default function AdminDashboard({
         newErrors.cantidad = `Stock insuficiente. Disponible: ${stockAdjustProduct.stock_actual}`
       }
     }
-    
+
     setStockErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleStockSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!validateStockForm() || !stockAdjustProduct) return
-    
+
     setStockSubmitting(true)
 
     try {
@@ -357,9 +357,9 @@ export default function AdminDashboard({
   }
 
   const filteredProducts = searchQuery.trim()
-    ? productList.filter(p => 
-        p.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
-      )
+    ? productList.filter(p =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
+    )
     : productList
 
   useEffect(() => {
@@ -404,17 +404,27 @@ export default function AdminDashboard({
                 Panel de Administración
               </h1>
               <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark mt-1">
-                Gestioná productos y categorías
+                Gestioná productos, categorías y pedidos
               </p>
             </div>
-            <button
-              onClick={openAddModal}
-              className="btn-primary flex items-center justify-center gap-2 touch-target w-full sm:w-auto"
-              aria-label="Agregar nuevo producto"
-            >
-              <Plus className="w-5 h-5" aria-hidden="true" />
-              <span className="hidden sm:inline">Agregar producto</span>
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Link
+                href="/admin/orders"
+                className="btn-secondary flex items-center justify-center gap-2 touch-target w-full sm:w-auto"
+                aria-label="Ver pedidos"
+              >
+                <ShoppingBag className="w-5 h-5" aria-hidden="true" />
+                <span>Ver pedidos</span>
+              </Link>
+              <button
+                onClick={openAddModal}
+                className="btn-primary flex items-center justify-center gap-2 touch-target w-full sm:w-auto"
+                aria-label="Agregar nuevo producto"
+              >
+                <Plus className="w-5 h-5" aria-hidden="true" />
+                <span className="hidden sm:inline">Agregar producto</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -466,65 +476,65 @@ export default function AdminDashboard({
                       {filteredProducts.map((product) => {
                         const stockStatus = getStockStatus(product)
                         return (
-                        <tr 
-                          key={product.id} 
-                          onClick={() => openDetailModal(product)}
-                          className="hover:bg-surface-light dark:hover:bg-dark-200/50 transition-colors duration-150 cursor-pointer"
-                        >
-                          <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-body text-text-primary-light dark:text-text-primary-dark font-medium">
-                            {product.name}
-                          </td>
-                          <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-body font-semibold text-primary hidden md:table-cell">
-                            {formatPriceARS(product.price)}
-                          </td>
-                          <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden lg:table-cell">
-                            <span className={`badge ${getCategoryColor(product.category_id)}`}>
-                              {getCategoryName(product.category_id)}
-                            </span>
-                          </td>
-                          <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-center hidden sm:table-cell">
-                            <div className="flex items-center justify-center gap-2">
-                              <span className={`font-mono font-semibold text-body ${stockStatus === 'sin_stock' ? 'text-red-500' : stockStatus === 'critico' ? 'text-orange-500' : stockStatus === 'bajo' ? 'text-yellow-500' : 'text-green-500'}`}>
-                                {product.stock_actual ?? 0}
+                          <tr
+                            key={product.id}
+                            onClick={() => openDetailModal(product)}
+                            className="hover:bg-surface-light dark:hover:bg-dark-200/50 transition-colors duration-150 cursor-pointer"
+                          >
+                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-body text-text-primary-light dark:text-text-primary-dark font-medium">
+                              {product.name}
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-body font-semibold text-primary hidden md:table-cell">
+                              {formatPriceARS(product.price)}
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden lg:table-cell">
+                              <span className={`badge ${getCategoryColor(product.category_id)}`}>
+                                {getCategoryName(product.category_id)}
                               </span>
-                              <span className={`badge ${getStockStatusColor(stockStatus)} text-xs px-2 py-0.5`}>
-                                {getStockStatusLabel(stockStatus)}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right">
-                            <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                onClick={() => openDetailModal(product)}
-                                className="btn-ghost p-2 touch-target"
-                                aria-label={`Ver detalle del producto ${product.name}`}
-                              >
-                                <Eye className="w-4 h-4" aria-hidden="true" />
-                              </button>
-                              <button
-                                onClick={() => openEditModal(product)}
-                                className="btn-ghost p-2 touch-target"
-                                aria-label={`Editar producto ${product.name}`}
-                              >
-                                <Edit2 className="w-4 h-4" aria-hidden="true" />
-                              </button>
-                              <button
-                                onClick={() => openStockModal(product)}
-                                className="btn-ghost p-2 touch-target text-primary hover:bg-primary/10"
-                                aria-label={`Ajustar stock de ${product.name}`}
-                              >
-                                <Package className="w-4 h-4" aria-hidden="true" />
-                              </button>
-                              <button
-                                onClick={() => handleProductDelete(product.id)}
-                                className="btn-ghost p-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 touch-target"
-                                aria-label={`Eliminar producto ${product.name}`}
-                              >
-                                <Trash2 className="w-4 h-4" aria-hidden="true" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-center hidden sm:table-cell">
+                              <div className="flex items-center justify-center gap-2">
+                                <span className={`font-mono font-semibold text-body ${stockStatus === 'sin_stock' ? 'text-red-500' : stockStatus === 'critico' ? 'text-orange-500' : stockStatus === 'bajo' ? 'text-yellow-500' : 'text-green-500'}`}>
+                                  {product.stock_actual ?? 0}
+                                </span>
+                                <span className={`badge ${getStockStatusColor(stockStatus)} text-xs px-2 py-0.5`}>
+                                  {getStockStatusLabel(stockStatus)}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right">
+                              <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  onClick={() => openDetailModal(product)}
+                                  className="btn-ghost p-2 touch-target"
+                                  aria-label={`Ver detalle del producto ${product.name}`}
+                                >
+                                  <Eye className="w-4 h-4" aria-hidden="true" />
+                                </button>
+                                <button
+                                  onClick={() => openEditModal(product)}
+                                  className="btn-ghost p-2 touch-target"
+                                  aria-label={`Editar producto ${product.name}`}
+                                >
+                                  <Edit2 className="w-4 h-4" aria-hidden="true" />
+                                </button>
+                                <button
+                                  onClick={() => openStockModal(product)}
+                                  className="btn-ghost p-2 touch-target text-primary hover:bg-primary/10"
+                                  aria-label={`Ajustar stock de ${product.name}`}
+                                >
+                                  <Package className="w-4 h-4" aria-hidden="true" />
+                                </button>
+                                <button
+                                  onClick={() => handleProductDelete(product.id)}
+                                  className="btn-ghost p-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 touch-target"
+                                  aria-label={`Eliminar producto ${product.name}`}
+                                >
+                                  <Trash2 className="w-4 h-4" aria-hidden="true" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
                         )
                       })}
                     </tbody>
@@ -536,65 +546,65 @@ export default function AdminDashboard({
                   {filteredProducts.map((product) => {
                     const stockStatus = getStockStatus(product)
                     return (
-                    <article 
-                      key={product.id} 
-                      onClick={() => openDetailModal(product)}
-                      className="p-4 border-b border-surface-light dark:border-dark-200 last:border-b-0 hover:bg-surface-light dark:hover:bg-dark-200/50 transition-colors duration-150 cursor-pointer"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-body font-medium text-text-primary-light dark:text-text-primary-dark truncate">
-                            {product.name}
-                          </h3>
-                          <div className="flex flex-wrap items-center gap-2 mt-2">
-                            <span className="text-display font-bold text-primary">
-                              {formatPriceARS(product.price)}
-                            </span>
-                            <span className={`badge ${getCategoryColor(product.category_id)} text-xs`}>
-                              {getCategoryName(product.category_id)}
-                            </span>
+                      <article
+                        key={product.id}
+                        onClick={() => openDetailModal(product)}
+                        className="p-4 border-b border-surface-light dark:border-dark-200 last:border-b-0 hover:bg-surface-light dark:hover:bg-dark-200/50 transition-colors duration-150 cursor-pointer"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-body font-medium text-text-primary-light dark:text-text-primary-dark truncate">
+                              {product.name}
+                            </h3>
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                              <span className="text-display font-bold text-primary">
+                                {formatPriceARS(product.price)}
+                              </span>
+                              <span className={`badge ${getCategoryColor(product.category_id)} text-xs`}>
+                                {getCategoryName(product.category_id)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className={`font-mono text-sm ${stockStatus === 'sin_stock' ? 'text-red-500' : stockStatus === 'critico' ? 'text-orange-500' : stockStatus === 'bajo' ? 'text-yellow-500' : 'text-green-500'}`}>
+                                Stock: {product.stock_actual ?? 0}
+                              </span>
+                              <span className={`badge ${getStockStatusColor(stockStatus)} text-xs px-2 py-0.5`}>
+                                {getStockStatusLabel(stockStatus)}
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className={`font-mono text-sm ${stockStatus === 'sin_stock' ? 'text-red-500' : stockStatus === 'critico' ? 'text-orange-500' : stockStatus === 'bajo' ? 'text-yellow-500' : 'text-green-500'}`}>
-                              Stock: {product.stock_actual ?? 0}
-                            </span>
-                            <span className={`badge ${getStockStatusColor(stockStatus)} text-xs px-2 py-0.5`}>
-                              {getStockStatusLabel(stockStatus)}
-                            </span>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openDetailModal(product); }}
+                              className="btn-ghost p-2 touch-target"
+                              aria-label={`Ver detalle de ${product.name}`}
+                            >
+                              <Eye className="w-4 h-4" aria-hidden="true" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openEditModal(product); }}
+                              className="btn-ghost p-2 touch-target"
+                              aria-label={`Editar ${product.name}`}
+                            >
+                              <Edit2 className="w-4 h-4" aria-hidden="true" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openStockModal(product); }}
+                              className="btn-ghost p-2 touch-target text-primary hover:bg-primary/10"
+                              aria-label={`Ajustar stock de ${product.name}`}
+                            >
+                              <Package className="w-4 h-4" aria-hidden="true" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleProductDelete(product.id); }}
+                              className="btn-ghost p-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 touch-target"
+                              aria-label={`Eliminar ${product.name}`}
+                            >
+                              <Trash2 className="w-4 h-4" aria-hidden="true" />
+                            </button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openDetailModal(product); }}
-                            className="btn-ghost p-2 touch-target"
-                            aria-label={`Ver detalle de ${product.name}`}
-                          >
-                            <Eye className="w-4 h-4" aria-hidden="true" />
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openEditModal(product); }}
-                            className="btn-ghost p-2 touch-target"
-                            aria-label={`Editar ${product.name}`}
-                          >
-                            <Edit2 className="w-4 h-4" aria-hidden="true" />
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openStockModal(product); }}
-                            className="btn-ghost p-2 touch-target text-primary hover:bg-primary/10"
-                            aria-label={`Ajustar stock de ${product.name}`}
-                          >
-                            <Package className="w-4 h-4" aria-hidden="true" />
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleProductDelete(product.id); }}
-                            className="btn-ghost p-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 touch-target"
-                            aria-label={`Eliminar ${product.name}`}
-                          >
-                            <Trash2 className="w-4 h-4" aria-hidden="true" />
-                          </button>
-                        </div>
-                      </div>
-                    </article>
+                      </article>
                     )
                   })}
                 </div>
@@ -706,13 +716,13 @@ export default function AdminDashboard({
 
         {/* Product Modal */}
         {isModalOpen && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 flex items-center justify-center p-3 sm:p-4 z-50"
             role="dialog"
             aria-modal="true"
             aria-labelledby="product-modal-title"
           >
-            <div 
+            <div
               ref={modalRef}
               className="card w-full max-w-md sm:max-w-lg shadow-elevation-4 animate-scale-in max-h-[90vh] overflow-y-auto"
             >
@@ -720,8 +730,8 @@ export default function AdminDashboard({
                 <h2 id="product-modal-title" className="text-heading text-text-primary-light dark:text-text-primary-dark">
                   {editingProduct ? 'Editar producto' : 'Agregar producto'}
                 </h2>
-                <button 
-                  onClick={closeProductModal} 
+                <button
+                  onClick={closeProductModal}
                   className="p-2 text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark hover:bg-surface-light dark:hover:bg-dark-200 rounded-lg transition-colors duration-150 touch-target flex-shrink-0"
                   aria-label="Cerrar modal"
                 >
@@ -730,8 +740,8 @@ export default function AdminDashboard({
               </div>
               <form onSubmit={handleProductSubmit} className="space-y-4 sm:space-y-5">
                 <div>
-                  <label 
-                    htmlFor="product-name" 
+                  <label
+                    htmlFor="product-name"
                     className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-1.5"
                   >
                     Nombre <span className="text-red-500" aria-hidden="true">*</span>
@@ -757,8 +767,8 @@ export default function AdminDashboard({
                   )}
                 </div>
                 <div>
-                  <label 
-                    htmlFor="product-price" 
+                  <label
+                    htmlFor="product-price"
                     className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-1.5"
                   >
                     Precio <span className="text-red-500" aria-hidden="true">*</span>
@@ -787,8 +797,8 @@ export default function AdminDashboard({
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label 
-                      htmlFor="product-stock-actual" 
+                    <label
+                      htmlFor="product-stock-actual"
                       className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-1.5"
                     >
                       Stock actual <span className="text-red-500" aria-hidden="true">*</span>
@@ -816,8 +826,8 @@ export default function AdminDashboard({
                     )}
                   </div>
                   <div>
-                    <label 
-                      htmlFor="product-stock-minimo" 
+                    <label
+                      htmlFor="product-stock-minimo"
                       className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-1.5"
                     >
                       Stock mínimo <span className="text-red-500" aria-hidden="true">*</span>
@@ -846,8 +856,8 @@ export default function AdminDashboard({
                   </div>
                 </div>
                 <div>
-                  <label 
-                    htmlFor="product-category" 
+                  <label
+                    htmlFor="product-category"
                     className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-1.5"
                   >
                     Categoría
@@ -893,20 +903,20 @@ export default function AdminDashboard({
 
         {/* Category Modal */}
         {isCategoryModalOpen && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 flex items-center justify-center p-3 sm:p-4 z-50"
             role="dialog"
             aria-modal="true"
             aria-labelledby="category-modal-title"
           >
-            <div 
+            <div
               ref={categoryModalRef}
               className="card w-full max-w-md shadow-elevation-4 animate-scale-in"
             >
               <div className="flex justify-between items-center mb-4 pb-4 border-b border-surface-light dark:border-dark-200">
                 <h2 id="category-modal-title" className="text-heading text-text-primary-light dark:text-text-primary-dark">Agregar categoría</h2>
-                <button 
-                  onClick={closeCategoryModal} 
+                <button
+                  onClick={closeCategoryModal}
                   className="p-2 text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark hover:bg-surface-light dark:hover:bg-dark-200 rounded-lg transition-colors duration-150 touch-target"
                   aria-label="Cerrar modal"
                 >
@@ -915,8 +925,8 @@ export default function AdminDashboard({
               </div>
               <form onSubmit={handleCategorySubmit} className="space-y-4">
                 <div>
-                  <label 
-                    htmlFor="category-name" 
+                  <label
+                    htmlFor="category-name"
                     className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-1.5"
                   >
                     Nombre de la categoría <span className="text-red-500" aria-hidden="true">*</span>
@@ -959,20 +969,20 @@ export default function AdminDashboard({
 
         {/* Stock Adjustment Modal */}
         {isStockModalOpen && stockAdjustProduct && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 flex items-center justify-center p-3 sm:p-4 z-50"
             role="dialog"
             aria-modal="true"
             aria-labelledby="stock-modal-title"
           >
-            <div 
+            <div
               ref={stockModalRef}
               className="card w-full max-w-md shadow-elevation-4 animate-scale-in"
             >
               <div className="flex justify-between items-center mb-4 pb-4 border-b border-surface-light dark:border-dark-200">
                 <h2 id="stock-modal-title" className="text-heading text-text-primary-light dark:text-text-primary-dark">Ajustar Stock</h2>
-                <button 
-                  onClick={closeStockModal} 
+                <button
+                  onClick={closeStockModal}
                   className="p-2 text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark hover:bg-surface-light dark:hover:bg-dark-200 rounded-lg transition-colors duration-150 touch-target"
                   aria-label="Cerrar modal"
                 >
@@ -994,8 +1004,8 @@ export default function AdminDashboard({
                   <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark mt-1">Stock mínimo: {stockAdjustProduct.stock_minimo ?? 5}</p>
                 </div>
                 <div>
-                  <label 
-                    htmlFor="stock-tipo" 
+                  <label
+                    htmlFor="stock-tipo"
                     className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-1.5"
                   >
                     Tipo de movimiento <span className="text-red-500" aria-hidden="true">*</span>
@@ -1012,8 +1022,8 @@ export default function AdminDashboard({
                   </select>
                 </div>
                 <div>
-                  <label 
-                    htmlFor="stock-cantidad" 
+                  <label
+                    htmlFor="stock-cantidad"
                     className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-1.5"
                   >
                     Cantidad <span className="text-red-500" aria-hidden="true">*</span>
@@ -1046,8 +1056,8 @@ export default function AdminDashboard({
                   </p>
                 </div>
                 <div>
-                  <label 
-                    htmlFor="stock-motivo" 
+                  <label
+                    htmlFor="stock-motivo"
                     className="block text-body font-medium text-text-primary-light dark:text-text-primary-dark mb-1.5"
                   >
                     Motivo (opcional)
@@ -1089,20 +1099,20 @@ export default function AdminDashboard({
 
         {/* Detail Modal */}
         {isDetailModalOpen && selectedProduct && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 flex items-center justify-center p-3 sm:p-4 z-50"
             role="dialog"
             aria-modal="true"
             aria-labelledby="detail-modal-title"
           >
-            <div 
+            <div
               ref={detailModalRef}
               className="card w-full max-w-md shadow-elevation-4 animate-scale-in max-h-[90vh] overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-4 pb-4 border-b border-surface-light dark:border-dark-200">
                 <h2 id="detail-modal-title" className="text-heading text-text-primary-light dark:text-text-primary-dark">Detalle del Producto</h2>
-                <button 
-                  onClick={closeDetailModal} 
+                <button
+                  onClick={closeDetailModal}
                   className="p-2 text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark hover:bg-surface-light dark:hover:bg-dark-200 rounded-lg transition-colors duration-150 touch-target"
                   aria-label="Cerrar modal"
                 >
@@ -1142,9 +1152,9 @@ export default function AdminDashboard({
                 <div>
                   <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Fecha de creación</p>
                   <p className="text-body text-text-primary-light dark:text-text-primary-dark">
-                    {new Date(selectedProduct.created_at).toLocaleDateString('es-AR', { 
-                      year: 'numeric', 
-                      month: 'long', 
+                    {new Date(selectedProduct.created_at).toLocaleDateString('es-AR', {
+                      year: 'numeric',
+                      month: 'long',
                       day: 'numeric',
                       hour: '2-digit',
                       minute: '2-digit'
@@ -1154,13 +1164,13 @@ export default function AdminDashboard({
                 <div>
                   <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Fecha de actualización</p>
                   <p className="text-body text-text-primary-light dark:text-text-primary-dark">
-                    {selectedProduct.updated_at ? new Date(selectedProduct.updated_at).toLocaleDateString('es-AR', { 
-  year: 'numeric', 
-  month: 'long', 
-  day: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit'
-}) : 'N/A'}
+                    {selectedProduct.updated_at ? new Date(selectedProduct.updated_at).toLocaleDateString('es-AR', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }) : 'N/A'}
                   </p>
                 </div>
                 <div>
