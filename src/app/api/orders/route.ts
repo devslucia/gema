@@ -1,6 +1,77 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+export async function GET(request: Request) {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+  }
+
+  const { searchParams } = new URL(request.url)
+  const status = searchParams.get('status') // 'pending' | 'paid' | 'cancelled' | 'refunded' | 'all'
+
+  try {
+    let query = supabase
+      .from('orders')
+      .select('*, order_items(*)')
+      .order('created_at', { ascending: false })
+
+    if (status && status !== 'all') {
+      query = query.eq('status', status)
+    }
+
+    const { data: orders, error } = await query
+
+    if (error) throw error
+
+    // Stats: productos más vendidos (across ALL paid orders)
+    const { data: topItems } = await supabase
+      .from('order_items')
+      .select('product_id, product_name, quantity, subtotal')
+      .order('quantity', { ascending: false })
+
+    // Aggregate by product
+    const productSalesMap = new Map<string, { product_name: string; total_qty: number; total_revenue: number }>()
+      ; (topItems || []).forEach((item) => {
+        const existing = productSalesMap.get(item.product_id)
+        if (existing) {
+          existing.total_qty += item.quantity
+          existing.total_revenue += item.subtotal
+        } else {
+          productSalesMap.set(item.product_id, {
+            product_name: item.product_name,
+            total_qty: item.quantity,
+            total_revenue: item.subtotal,
+          })
+        }
+      })
+    const topProducts = Array.from(productSalesMap.entries())
+      .map(([product_id, data]) => ({ product_id, ...data }))
+      .sort((a, b) => b.total_qty - a.total_qty)
+      .slice(0, 5)
+
+    // Low stock products
+    const { data: lowStockProducts } = await supabase
+      .from('products')
+      .select('id, name, stock_actual, stock_minimo')
+      .or('stock_actual.eq.0,stock_actual.lte.stock_minimo')
+      .order('stock_actual', { ascending: true })
+      .limit(10)
+
+    return NextResponse.json({
+      orders: orders || [],
+      topProducts,
+      lowStockProducts: lowStockProducts || [],
+    })
+  } catch (error) {
+    const err = error as Error
+    console.error('Error fetching orders:', err)
+    return NextResponse.json({ error: err.message || 'Error interno' }, { status: 500 })
+  }
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient()
 
