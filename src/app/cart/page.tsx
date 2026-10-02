@@ -110,21 +110,40 @@ export default function CartPage() {
         <div className="flex justify-between items-center mb-2 text-gray-600 dark:text-gray-400 text-sm">
           <span>{cart.reduce((acc, i) => acc + i.quantity, 0)} productos</span>
         </div>
-        <div className="flex justify-between items-center pb-4 border-b border-gray-200 dark:border-gray-700 mb-4">
+        <div className="flex justify-between items-center pb-4 border-b border-gray-200 dark:border-gray-700 mb-5">
           <span className="text-lg font-bold text-gray-900 dark:text-white">Total</span>
           <span className="text-2xl font-bold text-primary">{formatPrice(total)}</span>
         </div>
 
-        <button
-          onClick={() => (window.location.href = '/pago-exitoso')}
-          className="w-full flex items-center justify-center gap-2 bg-primary text-white py-3 px-6 rounded-lg font-semibold text-base hover:bg-primary/90 transition-colors shadow-md"
-        >
-          Pagar con Mercado Pago
-        </button>
+        {/* Opciones de pago */}
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-3">
+          Elegí tu método de pago
+        </p>
+
+        <div className="space-y-3">
+          {/* +Pagos Nación */}
+          <Link
+            href="/checkout/maspagos"
+            id="cart-pay-maspagos"
+            className="w-full flex items-center justify-center gap-3 bg-[#003366] hover:bg-[#004488] text-white py-3.5 px-6 rounded-xl font-semibold text-sm transition-colors shadow-md"
+          >
+            <span className="font-black text-lg leading-none">+</span>
+            Pagar con +Pagos Nación
+          </Link>
+
+          {/* Mercado Pago (placeholder existente) */}
+          <button
+            onClick={() => (window.location.href = '/pago-exitoso')}
+            id="cart-pay-mercadopago"
+            className="w-full flex items-center justify-center gap-2 bg-[#009EE3] hover:bg-[#0080BB] text-white py-3.5 px-6 rounded-xl font-semibold text-sm transition-colors shadow-sm"
+          >
+            Pagar con Mercado Pago
+          </button>
+        </div>
 
         <Link
           href="/"
-          className="mt-3 flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-primary transition-colors"
+          className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-primary transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Seguir comprando

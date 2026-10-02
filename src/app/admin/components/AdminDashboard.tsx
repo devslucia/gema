@@ -409,6 +409,15 @@ export default function AdminDashboard({
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Link
+                href="/admin/maspagos"
+                className="btn-secondary flex items-center justify-center gap-2 touch-target w-full sm:w-auto"
+                aria-label="Pedidos +Pagos Nación"
+                title="+Pagos Nación"
+              >
+                <span className="font-black text-base leading-none" aria-hidden="true">+</span>
+                <span className="hidden sm:inline">+Pagos Nación</span>
+              </Link>
+              <Link
                 href="/admin/orders"
                 className="btn-secondary flex items-center justify-center gap-2 touch-target w-full sm:w-auto"
                 aria-label="Ver pedidos"
