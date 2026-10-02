@@ -65,13 +65,27 @@ export function getStockStatusColor(stockStatus: StockStatus): string {
   return colors[stockStatus]
 }
 
+// ─── Payment Provider Types ───────────────────────────────────────────────────
+
+export type PaymentProvider = 'maspagos' | 'mercadopago' | null
+
+export type OrderStatus = 'pending' | 'paid' | 'cancelled' | 'refunded' | 'expired'
+
 export interface Order {
   id: string
   user_id: string | null
-  status: 'pending' | 'paid' | 'cancelled' | 'refunded'
+  status: OrderStatus
   total: number
+  // Mercado Pago (legacy)
   mp_preference_id: string | null
   mp_payment_id: string | null
+  // Multi-provider fields
+  payment_provider: PaymentProvider
+  external_payment_id: string | null
+  payment_link: string | null
+  payment_notes: string | null
+  expired_at: string | null
+  // Customer info
   customer_name: string
   customer_email: string
   customer_phone: string | null
