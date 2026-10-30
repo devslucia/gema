@@ -9,7 +9,7 @@ export interface StockMovement {
   stock_nuevo: number
   motivo?: string | null
   created_at: string
-  created_by: string | null
+  usuario_id: string | null
 }
 
 export interface Product {
@@ -36,7 +36,7 @@ export interface StockAdjustment {
   motivo?: string
 }
 
-export function getStockStatus(product: Product): StockStatus {
+export function getStockStatus(product: Pick<Product, 'stock_actual' | 'stock_minimo'>): StockStatus {
   const stock = product.stock_actual ?? 0
   const stockMinimo = product.stock_minimo ?? 5
   if (stock === 0) return 'sin_stock'
@@ -63,50 +63,4 @@ export function getStockStatusColor(stockStatus: StockStatus): string {
     ok: 'text-green-500'
   }
   return colors[stockStatus]
-}
-
-// ─── Payment Provider Types ───────────────────────────────────────────────────
-
-export type PaymentProvider = 'maspagos' | 'mercadopago' | null
-
-export type OrderStatus = 'pending' | 'paid' | 'cancelled' | 'refunded' | 'expired'
-
-export interface Order {
-  id: string
-  user_id: string | null
-  status: OrderStatus
-  total: number
-  // Mercado Pago (legacy)
-  mp_preference_id: string | null
-  mp_payment_id: string | null
-  // Multi-provider fields
-  payment_provider: PaymentProvider
-  external_payment_id: string | null
-  payment_link: string | null
-  payment_notes: string | null
-  expired_at: string | null
-  // Customer info
-  customer_name: string
-  customer_email: string
-  customer_phone: string | null
-  created_at: string
-  updated_at: string | null
-}
-
-export interface OrderItem {
-  id: string
-  order_id: string
-  product_id: string
-  product_name: string
-  unit_price: number
-  quantity: number
-  subtotal: number
-}
-
-export interface CartItem {
-  product_id: string
-  product_name: string
-  price: number
-  quantity: number
-  subtotal: number
 }

@@ -1,8 +1,7 @@
 'use client'
 
 import { useTheme } from './ThemeProvider'
-import { useCart } from '@/components/cart/cart-context'
-import { Sun, Moon, LogOut, LayoutDashboard, LogIn, ShoppingCart } from 'lucide-react'
+import { Sun, Moon, LogOut, LayoutDashboard, LogIn } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { logout } from '@/app/actions'
@@ -13,7 +12,6 @@ interface NavbarProps {
 
 export default function Navbar({ isAuthenticated = false }: NavbarProps) {
   const { theme, toggleTheme } = useTheme()
-  const { cart } = useCart()
 
   return (
     <header
@@ -75,20 +73,6 @@ export default function Navbar({ isAuthenticated = false }: NavbarProps) {
                 <span className="hidden sm:inline">Admin</span>
               </Link>
             )}
-
-            {/* Carrito — siempre visible, badge condicional */}
-            <Link
-              href="/cart"
-              className="relative p-2 rounded-lg hover:bg-primary/10 transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-              aria-label={`Ver carrito${cart.length > 0 ? ` (${cart.length} productos)` : ''}`}
-            >
-              <ShoppingCart className="w-5 h-5 text-text-secondary-light dark:text-text-secondary-dark" aria-hidden="true" />
-              {cart.length > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-primary text-xs font-bold text-white rounded-full w-5 h-5 flex items-center justify-center">
-                  {cart.length}
-                </span>
-              )}
-            </Link>
 
             <button
               onClick={toggleTheme}

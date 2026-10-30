@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import AdminDashboard from './components/AdminDashboard'
 import { Category } from '@/types/category'
-import { getAdminProductsPaginated, getCategories } from '@/lib/supabase/pagination'
+import { getAdminProductsPaginated, getCategories, getLowStockProducts } from '@/lib/supabase/pagination'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,12 +24,13 @@ export default async function AdminPage({
   const { page } = await searchParams
   const currentPage = page ? parseInt(page, 10) : 1
 
-  const [paginatedResult, categoriesData] = await Promise.all([
+  const [paginatedResult, categoriesData, lowStockProducts] = await Promise.all([
     getAdminProductsPaginated({
       page: currentPage,
       limit: 10,
     }),
     getCategories(),
+    getLowStockProducts(),
   ])
 
   const categories = categoriesData as Category[]
@@ -38,6 +39,7 @@ export default async function AdminPage({
     <AdminDashboard
       products={paginatedResult.data}
       categories={categories}
+      lowStockProducts={lowStockProducts}
       currentPage={paginatedResult.page}
       totalProducts={paginatedResult.total}
       totalPages={paginatedResult.totalPages}
