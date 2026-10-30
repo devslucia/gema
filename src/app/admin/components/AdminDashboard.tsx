@@ -2,17 +2,72 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useRef } from 'react'
-import { Product } from '@/types/product'
+import { Product, StockMovement } from '@/types/product'
 import { Category } from '@/types/category'
-import { Plus, Trash2, X, Package, Folder, AlertCircle, Edit2, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Search, Eye, MapPin, ShoppingBag } from 'lucide-react'
+import { Plus, Minus, Trash2, X, Package, Folder, AlertCircle, AlertTriangle, Edit2, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Search, Eye, MapPin, History, Wrench } from 'lucide-react'
 import { formatPriceARS } from '@/lib/utils'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { getStockStatus, getStockStatusLabel, getStockStatusColor, StockAdjustment } from '@/types/product'
+import type { LowStockProduct } from '@/lib/supabase/pagination'
+
+interface QuickStockControlProps {
+  product: Product
+  pending: boolean
+  onAdjust: (product: Product, delta: 1 | -1) => void
+}
+
+// Inline +/- stock buttons for a product row
+function QuickStockControl({ product, pending, onAdjust }: QuickStockControlProps) {
+  const stock = product.stock_actual ?? 0
+  const stockStatus = getStockStatus(product)
+  const isLow = stockStatus !== 'ok'
+
+  return (
+    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={() => onAdjust(product, -1)}
+        disabled={pending || stock <= 0}
+        className="btn-ghost p-0 touch-target flex items-center justify-center hover:text-red-500 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+        aria-label={`Restar 1 al stock de ${product.name}`}
+        title="Restar 1"
+      >
+        <Minus className="w-4 h-4" aria-hidden="true" />
+      </button>
+      <span
+        className={`font-mono font-semibold text-body tabular-nums min-w-[3ch] text-center ${getStockStatusColor(stockStatus)} ${pending ? 'opacity-60' : ''}`}
+        aria-live="polite"
+      >
+        {stock}
+      </span>
+      <button
+        type="button"
+        onClick={() => onAdjust(product, 1)}
+        disabled={pending}
+        className="btn-ghost p-0 touch-target flex items-center justify-center hover:text-green-500 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+        aria-label={`Sumar 1 al stock de ${product.name}`}
+        title="Sumar 1"
+      >
+        <Plus className="w-4 h-4" aria-hidden="true" />
+      </button>
+      {isLow && (
+        <span
+          className={`badge ${getStockStatusColor(stockStatus)} text-xs px-2 py-0.5 gap-1 ml-1`}
+          title={`Stock mínimo: ${product.stock_minimo ?? 5}`}
+        >
+          <AlertTriangle className="w-3 h-3" aria-hidden="true" />
+          {getStockStatusLabel(stockStatus)}
+        </span>
+      )}
+    </div>
+  )
+}
 
 interface AdminDashboardProps {
   products: Product[]
   categories: Category[]
+  lowStockProducts: LowStockProduct[]
   currentPage?: number
   totalProducts?: number
   totalPages?: number
@@ -21,6 +76,7 @@ interface AdminDashboardProps {
 export default function AdminDashboard({
   products: initialProducts,
   categories: initialCategories,
+  lowStockProducts: initialLowStock,
   currentPage = 1,
   totalProducts = 0,
   totalPages = 1,
@@ -57,10 +113,78 @@ export default function AdminDashboard({
   const categoryModalRef = useRef<HTMLDivElement>(null)
   const detailModalRef = useRef<HTMLDivElement>(null)
   const stockModalRef = useRef<HTMLDivElement>(null)
+  const [lowStockList, setLowStockList] = useState<LowStockProduct[]>(initialLowStock)
+  const [pendingStockIds, setPendingStockIds] = useState<Set<string>>(new Set())
+  const pendingStockRef = useRef<Set<string>>(new Set())
+  const [movements, setMovements] = useState<StockMovement[] | null>(null)
+  const [movementsLoading, setMovementsLoading] = useState(false)
+  const detailProductIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     setProductList(initialProducts)
   }, [initialProducts])
+
+  useEffect(() => {
+    setLowStockList(initialLowStock)
+  }, [initialLowStock])
+
+  // Keep the low stock alert list in sync with a product's current stock
+  const syncLowStock = (product: LowStockProduct) => {
+    setLowStockList((prev) => {
+      const rest = prev.filter((p) => p.id !== product.id)
+      if ((product.stock_actual ?? 0) > (product.stock_minimo ?? 5)) return rest
+      return [...rest, product].sort((a, b) => a.stock_actual - b.stock_actual)
+    })
+  }
+
+  const applyStockUpdate = (product: Product, stockActual: number, updatedAt: Product['updated_at']) => {
+    const patch = { stock_actual: stockActual, updated_at: updatedAt }
+    setProductList((prev) => prev.map((p) => (p.id === product.id ? { ...p, ...patch } : p)))
+    setSelectedProduct((prev) => (prev && prev.id === product.id ? { ...prev, ...patch } : prev))
+    syncLowStock({ id: product.id, name: product.name, stock_actual: stockActual, stock_minimo: product.stock_minimo })
+  }
+
+  const setStockPending = (id: string, pending: boolean) => {
+    if (pending) pendingStockRef.current.add(id)
+    else pendingStockRef.current.delete(id)
+    setPendingStockIds(new Set(pendingStockRef.current))
+  }
+
+  const handleQuickStock = async (product: Product, delta: 1 | -1) => {
+    const stockAnterior = product.stock_actual ?? 0
+    if (pendingStockRef.current.has(product.id)) return
+    if (delta < 0 && stockAnterior <= 0) return
+
+    setStockPending(product.id, true)
+    // Optimistic update; reverted below if the request fails
+    applyStockUpdate(product, stockAnterior + delta, product.updated_at)
+
+    try {
+      const response = await fetch('/api/stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_id: product.id,
+          tipo: delta > 0 ? 'entrada' : 'salida',
+          cantidad: 1,
+          motivo: delta > 0 ? 'Ajuste rápido +1' : 'Ajuste rápido -1',
+        } as StockAdjustment),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al ajustar stock')
+      }
+
+      applyStockUpdate(product, result.product.stock_actual, result.product.updated_at)
+    } catch (error) {
+      applyStockUpdate(product, stockAnterior, product.updated_at)
+      toast.error(error instanceof Error ? error.message : 'Error al ajustar stock')
+    } finally {
+      setStockPending(product.id, false)
+    }
+  }
 
   const getCategoryName = (categoryId: string | null) => {
     if (!categoryId) return 'Sin categoría'
@@ -142,6 +266,7 @@ export default function AdminDashboard({
               : p
           )
         )
+        syncLowStock({ id: editingProduct.id, ...productData })
         toast.success('Producto actualizado correctamente', {
           icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
         })
@@ -157,6 +282,7 @@ export default function AdminDashboard({
         toast.error(`Error al crear: ${error.message}`)
       } else if (data) {
         setProductList([data[0], ...productList])
+        syncLowStock(data[0])
         toast.success('Producto agregado correctamente', {
           icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
         })
@@ -175,6 +301,7 @@ export default function AdminDashboard({
 
     if (!error) {
       setProductList(productList.filter((p) => p.id !== id))
+      setLowStockList((prev) => prev.filter((p) => p.id !== id))
       toast.success('Producto eliminado correctamente')
     } else {
       toast.error('Error al eliminar el producto')
@@ -315,19 +442,7 @@ export default function AdminDashboard({
         throw new Error(result.error || 'Error al ajustar stock')
       }
 
-      // Update local product list with new stock
-      setProductList(
-        productList.map((p) =>
-          p.id === stockAdjustProduct.id
-            ? { ...p, stock_actual: result.product.stock_actual, updated_at: result.product.updated_at }
-            : p
-        )
-      )
-
-      // Also update the selected product in detail modal if open
-      if (selectedProduct && selectedProduct.id === stockAdjustProduct.id) {
-        setSelectedProduct({ ...selectedProduct, stock_actual: result.product.stock_actual, updated_at: result.product.updated_at })
-      }
+      applyStockUpdate(stockAdjustProduct, result.product.stock_actual, result.product.updated_at)
 
       toast.success('Stock actualizado correctamente', {
         icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
@@ -346,14 +461,33 @@ export default function AdminDashboard({
     setNewCategoryName('')
   }
 
-  const openDetailModal = (product: Product) => {
+  const openDetailModal = async (product: Product) => {
     setSelectedProduct(product)
     setIsDetailModalOpen(true)
+    setMovements(null)
+    setMovementsLoading(true)
+    detailProductIdRef.current = product.id
+
+    let result: StockMovement[] = []
+    try {
+      const response = await fetch(`/api/stock?product_id=${product.id}&limit=10`)
+      if (response.ok) result = await response.json()
+    } catch {
+      // History is informational; show empty state on failure
+    }
+
+    // Ignore responses for a product whose modal was already closed/replaced
+    if (detailProductIdRef.current !== product.id) return
+    setMovements(result)
+    setMovementsLoading(false)
   }
 
   const closeDetailModal = () => {
     setIsDetailModalOpen(false)
     setSelectedProduct(null)
+    setMovements(null)
+    setMovementsLoading(false)
+    detailProductIdRef.current = null
   }
 
   const filteredProducts = searchQuery.trim()
@@ -404,26 +538,16 @@ export default function AdminDashboard({
                 Panel de Administración
               </h1>
               <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark mt-1">
-                Gestioná productos, categorías y pedidos
+                Gestioná productos, categorías, stock y reparaciones
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Link
-                href="/admin/maspagos"
+                href="/admin/repairs"
                 className="btn-secondary flex items-center justify-center gap-2 touch-target w-full sm:w-auto"
-                aria-label="Pedidos +Pagos Nación"
-                title="+Pagos Nación"
               >
-                <span className="font-black text-base leading-none" aria-hidden="true">+</span>
-                <span className="hidden sm:inline">+Pagos Nación</span>
-              </Link>
-              <Link
-                href="/admin/orders"
-                className="btn-secondary flex items-center justify-center gap-2 touch-target w-full sm:w-auto"
-                aria-label="Ver pedidos"
-              >
-                <ShoppingBag className="w-5 h-5" aria-hidden="true" />
-                <span>Ver pedidos</span>
+                <Wrench className="w-5 h-5" aria-hidden="true" />
+                <span>Órdenes de reparación</span>
               </Link>
               <button
                 onClick={openAddModal}
@@ -436,6 +560,37 @@ export default function AdminDashboard({
             </div>
           </div>
         </div>
+
+        {/* Low stock alert */}
+        {lowStockList.length > 0 && (
+          <div
+            className="mb-4 sm:mb-6 rounded-xl border border-yellow-500/40 bg-yellow-50 dark:bg-yellow-900/20 p-4"
+            role="status"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" aria-hidden="true" />
+              <h2 className="text-body font-semibold text-text-primary-light dark:text-text-primary-dark">
+                {lowStockList.length} {lowStockList.length === 1 ? 'producto con stock bajo' : 'productos con stock bajo'}
+              </h2>
+            </div>
+            <ul className="flex flex-wrap gap-2">
+              {lowStockList.slice(0, 12).map((p) => (
+                <li
+                  key={p.id}
+                  className={`badge text-xs px-2.5 py-1 bg-white/70 dark:bg-dark-100 ${getStockStatusColor(getStockStatus(p))}`}
+                  title={`Stock mínimo: ${p.stock_minimo}`}
+                >
+                  {p.name}: <span className="font-mono ml-1">{p.stock_actual}/{p.stock_minimo}</span>
+                </li>
+              ))}
+              {lowStockList.length > 12 && (
+                <li className="badge text-xs px-2.5 py-1 text-text-secondary-light dark:text-text-secondary-dark">
+                  +{lowStockList.length - 12} más
+                </li>
+              )}
+            </ul>
+          </div>
+        )}
 
         {/* Search bar - full width on all screens */}
         <div className="mb-4 sm:mb-6">
@@ -473,7 +628,7 @@ export default function AdminDashboard({
                         <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider hidden lg:table-cell">
                           Categoría
                         </th>
-                        <th scope="col" className="px-4 sm:px-6 py-3 text-center text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider hidden sm:table-cell">
+                        <th scope="col" className="px-4 sm:px-6 py-3 text-center text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
                           Stock
                         </th>
                         <th scope="col" className="px-4 sm:px-6 py-3 text-right text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
@@ -483,12 +638,12 @@ export default function AdminDashboard({
                     </thead>
                     <tbody className="divide-y divide-surface-light dark:divide-dark-200">
                       {filteredProducts.map((product) => {
-                        const stockStatus = getStockStatus(product)
+                        const isLowStock = getStockStatus(product) !== 'ok'
                         return (
                           <tr
                             key={product.id}
                             onClick={() => openDetailModal(product)}
-                            className="hover:bg-surface-light dark:hover:bg-dark-200/50 transition-colors duration-150 cursor-pointer"
+                            className={`hover:bg-surface-light dark:hover:bg-dark-200/50 transition-colors duration-150 cursor-pointer ${isLowStock ? 'bg-yellow-50/60 dark:bg-yellow-900/10' : ''}`}
                           >
                             <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-body text-text-primary-light dark:text-text-primary-dark font-medium">
                               {product.name}
@@ -501,14 +656,13 @@ export default function AdminDashboard({
                                 {getCategoryName(product.category_id)}
                               </span>
                             </td>
-                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-center hidden sm:table-cell">
-                              <div className="flex items-center justify-center gap-2">
-                                <span className={`font-mono font-semibold text-body ${stockStatus === 'sin_stock' ? 'text-red-500' : stockStatus === 'critico' ? 'text-orange-500' : stockStatus === 'bajo' ? 'text-yellow-500' : 'text-green-500'}`}>
-                                  {product.stock_actual ?? 0}
-                                </span>
-                                <span className={`badge ${getStockStatusColor(stockStatus)} text-xs px-2 py-0.5`}>
-                                  {getStockStatusLabel(stockStatus)}
-                                </span>
+                            <td className="px-4 sm:px-6 py-2 whitespace-nowrap">
+                              <div className="flex justify-center">
+                                <QuickStockControl
+                                  product={product}
+                                  pending={pendingStockIds.has(product.id)}
+                                  onAdjust={handleQuickStock}
+                                />
                               </div>
                             </td>
                             <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right">
@@ -553,12 +707,12 @@ export default function AdminDashboard({
                 {/* Mobile Card View */}
                 <div className="lg:hidden">
                   {filteredProducts.map((product) => {
-                    const stockStatus = getStockStatus(product)
+                    const isLowStock = getStockStatus(product) !== 'ok'
                     return (
                       <article
                         key={product.id}
                         onClick={() => openDetailModal(product)}
-                        className="p-4 border-b border-surface-light dark:border-dark-200 last:border-b-0 hover:bg-surface-light dark:hover:bg-dark-200/50 transition-colors duration-150 cursor-pointer"
+                        className={`${isLowStock ? 'bg-yellow-50/60 dark:bg-yellow-900/10 ' : ''}p-4 border-b border-surface-light dark:border-dark-200 last:border-b-0 hover:bg-surface-light dark:hover:bg-dark-200/50 transition-colors duration-150 cursor-pointer`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
@@ -574,12 +728,12 @@ export default function AdminDashboard({
                               </span>
                             </div>
                             <div className="flex items-center gap-2 mt-2">
-                              <span className={`font-mono text-sm ${stockStatus === 'sin_stock' ? 'text-red-500' : stockStatus === 'critico' ? 'text-orange-500' : stockStatus === 'bajo' ? 'text-yellow-500' : 'text-green-500'}`}>
-                                Stock: {product.stock_actual ?? 0}
-                              </span>
-                              <span className={`badge ${getStockStatusColor(stockStatus)} text-xs px-2 py-0.5`}>
-                                {getStockStatusLabel(stockStatus)}
-                              </span>
+                              <span className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Stock</span>
+                              <QuickStockControl
+                                product={product}
+                                pending={pendingStockIds.has(product.id)}
+                                onAdjust={handleQuickStock}
+                              />
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -1157,6 +1311,43 @@ export default function AdminDashboard({
                 <div>
                   <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Stock mínimo</p>
                   <p className="text-body font-medium text-text-primary-light dark:text-text-primary-dark">{selectedProduct.stock_minimo ?? 5}</p>
+                </div>
+                <div>
+                  <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark flex items-center gap-1.5 mb-1.5">
+                    <History className="w-3.5 h-3.5" aria-hidden="true" />
+                    Últimos movimientos
+                  </p>
+                  {movementsLoading ? (
+                    <div className="flex items-center gap-2 text-caption text-text-secondary-light dark:text-text-secondary-dark">
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                      Cargando...
+                    </div>
+                  ) : movements && movements.length > 0 ? (
+                    <ul className="divide-y divide-surface-light dark:divide-dark-200 rounded-lg border border-surface-light dark:border-dark-200 max-h-56 overflow-y-auto">
+                      {movements.map((m) => (
+                        <li key={m.id} className="px-3 py-2 flex items-center justify-between gap-3 text-caption">
+                          <div className="min-w-0">
+                            <p className="text-text-primary-light dark:text-text-primary-dark truncate">
+                              {m.motivo || m.tipo.charAt(0).toUpperCase() + m.tipo.slice(1)}
+                            </p>
+                            <p className="text-text-secondary-light dark:text-text-secondary-dark">
+                              {new Date(m.created_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                          <div className="text-right flex-shrink-0 font-mono">
+                            <p className={m.stock_nuevo >= m.stock_anterior ? 'text-green-500' : 'text-red-500'}>
+                              {m.stock_nuevo >= m.stock_anterior ? '+' : '−'}{Math.abs(m.stock_nuevo - m.stock_anterior)}
+                            </p>
+                            <p className="text-text-secondary-light dark:text-text-secondary-dark">
+                              {m.stock_anterior} → {m.stock_nuevo}
+                            </p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Sin movimientos registrados</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark">Fecha de creación</p>

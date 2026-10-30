@@ -83,74 +83,62 @@ CREATE INDEX IF NOT EXISTS idx_products_name_gin ON products USING GIN (name gin
 CREATE INDEX IF NOT EXISTS idx_products_stock_minimo ON products (stock_minimo) WHERE stock_actual <= stock_minimo;
 CREATE INDEX IF NOT EXISTS idx_stock_movements_product_id ON stock_movements (product_id);
 CREATE INDEX IF NOT EXISTS idx_stock_movements_created_at ON stock_movements (created_at DESC);
+
 -- ============================================================
--- TABLE: orders
+-- Repair orders (same as migration_repair_orders.sql)
 -- ============================================================
-CREATE TABLE IF NOT EXISTS orders (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'cancelled', 'refunded')),
-  total NUMERIC(12,2) NOT NULL DEFAULT 0,
-  mp_preference_id TEXT UNIQUE,
-  mp_payment_id TEXT,
-  customer_name TEXT,
-  customer_email TEXT,
-  customer_phone TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS repair_orders (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  -- Correlative order number (1, 2, 3...), shown padded as #000001
+  order_number bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
+  received_at timestamptz NOT NULL DEFAULT now(),
+
+  -- Customer
+  customer_name text NOT NULL,
+  customer_phone text NOT NULL,
+  customer_email text,
+
+  -- Device
+  device_brand text NOT NULL,
+  device_model text NOT NULL,
+  imei text,
+  lock_type text NOT NULL DEFAULT 'none'
+    CHECK (lock_type IN ('none', 'pin', 'pattern', 'fingerprint', 'other')),
+  lock_notes text,
+  -- Android-style pattern as sequence of points 1..9 (row by row, top-left = 1)
+  unlock_pattern smallint[],
+
+  -- Reception
+  issue text NOT NULL,
+  accessories text[] NOT NULL DEFAULT '{}',
+  cosmetic_condition text,
+
+  -- Work
+  work_to_do text,
+  estimated_budget numeric(12, 2),
+  deposit numeric(12, 2),
+  technician text,
+  priority text NOT NULL DEFAULT 'normal' CHECK (priority IN ('normal', 'urgent')),
+  internal_notes text,
+  status text NOT NULL DEFAULT 'ingresado'
+    CHECK (status IN ('ingresado', 'en_reparacion', 'listo', 'entregado', 'cancelado')),
+
+  created_by uuid REFERENCES auth.users(id) DEFAULT auth.uid(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Enable RLS
-ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE repair_orders ENABLE ROW LEVEL SECURITY;
 
--- Policies for orders
--- Public can view orders (for admin panel with proper auth)
-CREATE POLICY "Authenticated can view orders" ON orders
-FOR SELECT TO authenticated USING (true);
--- Authenticated can insert orders (from checkout)
-CREATE POLICY "Authenticated can insert orders" ON orders
-FOR INSERT TO authenticated WITH CHECK (true);
--- Authenticated can update orders (status, mp IDs)
-CREATE POLICY "Authenticated can update orders" ON orders
-FOR UPDATE TO authenticated USING (true);
+-- Only authenticated users (admins) can see or manage repair orders.
+-- Customer data is never public.
+CREATE POLICY "Authenticated can manage repair orders" ON repair_orders
+  FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- Index on status for admin filtering
-CREATE INDEX IF NOT EXISTS idx_orders_status ON orders (status);
-CREATE INDEX IF NOT EXISTS idx_orders_user ON orders (user_id);
-CREATE INDEX IF NOT EXISTS idx_orders_mp ON orders (mp_preference_id);
+CREATE INDEX IF NOT EXISTS idx_repair_orders_status ON repair_orders (status);
+CREATE INDEX IF NOT EXISTS idx_repair_orders_received_at ON repair_orders (received_at DESC);
 
--- ============================================================
--- TABLE: order_items
--- ============================================================
-CREATE TABLE IF NOT EXISTS order_items (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  product_id UUID NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
-  product_name TEXT NOT NULL,
-  unit_price NUMERIC(10,2) NOT NULL,
-  quantity INTEGER NOT NULL DEFAULT 1,
-  subtotal NUMERIC(12,2) NOT NULL DEFAULT 0
-);
-
--- Enable RLS
-ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
-
--- Policies for order_items
-CREATE POLICY "Authenticated can view order_items" ON order_items
-FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Authenticated can insert order_items" ON order_items
-FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "Authenticated can update order_items" ON order_items
-FOR UPDATE TO authenticated USING (true);
-
--- Indexes
-CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items (order_id);
-CREATE INDEX IF NOT EXISTS idx_order_items_product ON order_items (product_id);
-
--- ============================================================
--- Trigger to update orders.updated_at
--- ==========================================================--
-CREATE OR REPLACE FUNCTION update_orders_updated_at()
+CREATE OR REPLACE FUNCTION update_repair_orders_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = now();
@@ -158,7 +146,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trigger_update_orders_updated_at
-BEFORE UPDATE ON orders
+DROP TRIGGER IF EXISTS trigger_update_repair_orders_updated_at ON repair_orders;
+CREATE TRIGGER trigger_update_repair_orders_updated_at
+BEFORE UPDATE ON repair_orders
 FOR EACH ROW
-EXECUTE FUNCTION update_orders_updated_at();
+EXECUTE FUNCTION update_repair_orders_updated_at();

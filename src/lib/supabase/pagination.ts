@@ -234,3 +234,18 @@ export async function searchProductsFlat(query: string): Promise<Product[]> {
 
   return (products as Product[]) || []
 }
+export type LowStockProduct = Pick<Product, 'id' | 'name' | 'stock_actual' | 'stock_minimo'>
+
+export async function getLowStockProducts(): Promise<LowStockProduct[]> {
+  const supabase = await createClient()
+
+  // PostgREST can't compare two columns, so filter stock_actual <= stock_minimo here
+  const { data: products } = await supabase
+    .from('products')
+    .select('id, name, stock_actual, stock_minimo')
+    .order('stock_actual', { ascending: true })
+
+  return ((products as LowStockProduct[]) || []).filter(
+    p => (p.stock_actual ?? 0) <= (p.stock_minimo ?? 5)
+  )
+}

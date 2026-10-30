@@ -70,8 +70,17 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString()
       })
       .eq('id', product_id)
+      // Only apply if stock hasn't changed since we read it (avoids lost updates on rapid clicks)
+      .eq('stock_actual', stockAnterior)
       .select()
-      .single()
+      .maybeSingle()
+
+    if (!updateError && !updatedProduct) {
+      return NextResponse.json(
+        { error: 'El stock cambió mientras se actualizaba. Volvé a intentar.' },
+        { status: 409 }
+      )
+    }
 
     if (updateError) {
       console.error('Supabase update error:', {
