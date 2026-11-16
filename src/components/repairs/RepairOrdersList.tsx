@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useDeferredValue, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Plus, Search, Eye, Edit2, FileDown, X, Loader2, Wrench, AlertTriangle, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { formatPriceARS } from '@/lib/utils'
+import { formatPriceARS, matchesSearch } from '@/lib/utils'
 import { downloadRepairOrderPdf } from '@/lib/repairs/pdf'
 import PatternLock from './PatternLock'
 import {
@@ -17,6 +17,9 @@ import {
   STATUS_COLORS,
   formatOrderNumber,
 } from '@/types/repair'
+
+// Rendering thousands of rows makes typing sluggish; search narrows it down
+const MAX_VISIBLE = 200
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -103,20 +106,23 @@ export default function RepairOrdersList({ orders: initialOrders }: { orders: Re
     }
   }
 
-  const q = query.trim().toLowerCase()
-  const filtered = orders.filter((o) => {
-    if (statusFilter !== 'all' && o.status !== statusFilter) return false
-    if (!q) return true
-    return [
-      formatOrderNumber(o.order_number),
-      String(o.order_number),
-      o.customer_name,
-      o.customer_phone,
-      o.device_brand,
-      o.device_model,
-      o.imei ?? '',
-    ].some((v) => v.toLowerCase().includes(q))
-  })
+  const deferredQuery = useDeferredValue(query)
+  const matching = orders.filter(
+    (o) =>
+      (statusFilter === 'all' || o.status === statusFilter) &&
+      matchesSearch(
+        [
+          formatOrderNumber(o.order_number),
+          o.order_number,
+          o.customer_name,
+          o.customer_phone,
+          `${o.device_brand} ${o.device_model}`,
+          o.imei,
+        ],
+        deferredQuery
+      )
+  )
+  const filtered = matching.slice(0, MAX_VISIBLE)
 
   const counts = orders.reduce<Record<string, number>>((acc, o) => {
     acc[o.status] = (acc[o.status] ?? 0) + 1
@@ -159,7 +165,7 @@ export default function RepairOrdersList({ orders: initialOrders }: { orders: Re
       <div className="flex flex-col lg:flex-row lg:items-center gap-3 mb-4">
         <div className="relative w-full lg:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary-light dark:text-text-secondary-dark" aria-hidden="true" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="N°, cliente, teléfono, equipo, IMEI..." className="input-field pl-10" aria-label="Buscar órdenes" />
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="N°, cliente, teléfono, equipo, IMEI..." className="input-field pl-10" aria-label="Buscar órdenes" />
         </div>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por estado">
           {(['all', ...Object.keys(STATUS_LABELS)] as (RepairStatus | 'all')[]).map((s) => (
@@ -177,6 +183,12 @@ export default function RepairOrdersList({ orders: initialOrders }: { orders: Re
       </div>
 
       <div className="card p-0 overflow-hidden">
+        {(deferredQuery.trim() || matching.length > MAX_VISIBLE) && matching.length > 0 && (
+          <p className="px-4 py-2 text-caption text-text-secondary-light dark:text-text-secondary-dark border-b border-background-light dark:border-dark-200" role="status" aria-live="polite">
+            {matching.length} {matching.length === 1 ? 'orden encontrada' : 'órdenes encontradas'}
+            {matching.length > MAX_VISIBLE && ` · mostrando las ${MAX_VISIBLE} más recientes, refiná la búsqueda para ver el resto`}
+          </p>
+        )}
         {filtered.length === 0 ? (
           <div className="text-center py-14" role="status">
             <div className="inline-flex p-4 rounded-full bg-background-light dark:bg-dark-200 mb-3">
