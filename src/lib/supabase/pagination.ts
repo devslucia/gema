@@ -1,5 +1,6 @@
 import { createClient } from './server'
 import { Product } from '@/types/product'
+import { matchesSearch } from '@/lib/utils'
 
 export interface PaginatedResult<T> {
   data: T[]
@@ -79,6 +80,59 @@ export async function getAdminProductsPaginated({
     limit,
     totalPages,
     hasMore: page < totalPages,
+  }
+}
+
+// Supabase returns at most 1000 rows per request, so read in chunks to get everything
+const CHUNK_SIZE = 1000
+
+export async function fetchAllRows<T>(
+  fetchPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+): Promise<T[]> {
+  const rows: T[] = []
+  for (let from = 0; ; from += CHUNK_SIZE) {
+    const { data, error } = await fetchPage(from, from + CHUNK_SIZE - 1)
+    if (error) throw new Error(error.message)
+    rows.push(...(data || []))
+    if (!data || data.length < CHUNK_SIZE) return rows
+  }
+}
+
+/**
+ * Admin product search across the whole catalog (not just the current page).
+ * Matches name, category name and id; case/accent insensitive and partial.
+ */
+export async function searchAdminProducts({
+  search = '',
+  page = 1,
+  limit = 10,
+}: PaginationParams): Promise<PaginatedResult<Product>> {
+  const supabase = await createClient()
+
+  const [products, { data: categories }] = await Promise.all([
+    fetchAllRows<Product>((from, to) =>
+      supabase.from('products').select('*').order('created_at', { ascending: false }).order('id').range(from, to)
+    ),
+    supabase.from('categories').select('id, name'),
+  ])
+
+  const categoryNames = new Map((categories || []).map((c) => [c.id as string, c.name as string]))
+  const matches = products.filter((p) =>
+    matchesSearch([p.name, p.category_id ? categoryNames.get(p.category_id) : 'Sin categoría', p.id], search)
+  )
+
+  const total = matches.length
+  const totalPages = Math.max(1, Math.ceil(total / limit))
+  const safePage = Math.min(Math.max(1, page), totalPages)
+  const offset = (safePage - 1) * limit
+
+  return {
+    data: matches.slice(offset, offset + limit),
+    total,
+    page: safePage,
+    limit,
+    totalPages,
+    hasMore: safePage < totalPages,
   }
 }
 

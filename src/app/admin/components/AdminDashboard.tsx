@@ -1,7 +1,9 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useTransition } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
+import { useDebounce } from '@/lib/hooks/useDebounce'
 import { Product, StockMovement } from '@/types/product'
 import { Category } from '@/types/category'
 import { Plus, Minus, Trash2, X, Package, Folder, AlertCircle, AlertTriangle, Edit2, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Search, Eye, MapPin, History, Wrench } from 'lucide-react'
@@ -68,6 +70,7 @@ interface AdminDashboardProps {
   products: Product[]
   categories: Category[]
   lowStockProducts: LowStockProduct[]
+  searchQuery?: string
   currentPage?: number
   totalProducts?: number
   totalPages?: number
@@ -77,6 +80,7 @@ export default function AdminDashboard({
   products: initialProducts,
   categories: initialCategories,
   lowStockProducts: initialLowStock,
+  searchQuery: initialSearch = '',
   currentPage = 1,
   totalProducts = 0,
   totalPages = 1,
@@ -90,7 +94,13 @@ export default function AdminDashboard({
   const [isStockModalOpen, setIsStockModalOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [stockAdjustProduct, setStockAdjustProduct] = useState<Product | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
+  const router = useRouter()
+  const pathname = usePathname()
+  const [searchQuery, setSearchQuery] = useState(initialSearch)
+  const debouncedSearch = useDebounce(searchQuery, 300)
+  const [isSearching, startSearchTransition] = useTransition()
+  const lastSearchRef = useRef(initialSearch.trim())
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [formData, setFormData] = useState({
@@ -490,11 +500,35 @@ export default function AdminDashboard({
     detailProductIdRef.current = null
   }
 
-  const filteredProducts = searchQuery.trim()
-    ? productList.filter(p =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
-    )
-    : productList
+  // Search runs on the server over the whole catalog (see searchAdminProducts),
+  // so typing updates ?q= in the URL and resets to page 1
+  useEffect(() => {
+    const q = debouncedSearch.trim()
+    if (q === lastSearchRef.current) return
+    lastSearchRef.current = q
+    startSearchTransition(() => {
+      router.replace(q ? `${pathname}?q=${encodeURIComponent(q)}` : pathname, { scroll: false })
+    })
+  }, [debouncedSearch, pathname, router])
+
+  // Keep the input in sync when the URL changes from outside (back/forward),
+  // but never overwrite what the user is typing
+  useEffect(() => {
+    if (document.activeElement === searchInputRef.current) return
+    if (initialSearch.trim() !== lastSearchRef.current) {
+      lastSearchRef.current = initialSearch.trim()
+      setSearchQuery(initialSearch)
+    }
+  }, [initialSearch])
+
+  const activeSearch = initialSearch.trim()
+  const pageHref = (page: number) => {
+    const params = new URLSearchParams()
+    if (activeSearch) params.set('q', activeSearch)
+    if (page > 1) params.set('page', String(page))
+    const qs = params.toString()
+    return qs ? `?${qs}` : pathname
+  }
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -597,14 +631,32 @@ export default function AdminDashboard({
           <div className="relative max-w-md w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary-light dark:text-text-secondary-dark" aria-hidden="true" />
             <input
-              type="text"
-              placeholder="Buscar productos..."
+              ref={searchInputRef}
+              type="search"
+              placeholder="Buscar por nombre, categoría o ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="input-field pl-10 w-full"
+              className="input-field pl-10 pr-10 w-full"
               aria-label="Buscar productos"
             />
+            {isSearching ? (
+              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-text-secondary-light dark:text-text-secondary-dark" aria-label="Buscando" />
+            ) : searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-text-secondary-light dark:text-text-secondary-dark hover:text-primary"
+                aria-label="Limpiar búsqueda"
+              >
+                <X className="w-4 h-4" aria-hidden="true" />
+              </button>
+            )}
           </div>
+          {activeSearch && !isSearching && (
+            <p className="mt-2 text-caption text-text-secondary-light dark:text-text-secondary-dark" role="status" aria-live="polite">
+              {totalProducts} {totalProducts === 1 ? 'resultado' : 'resultados'} para &ldquo;{activeSearch}&rdquo;
+            </p>
+          )}
         </div>
 
         {/* Main content grid - responsive */}
@@ -637,7 +689,7 @@ export default function AdminDashboard({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-surface-light dark:divide-dark-200">
-                      {filteredProducts.map((product) => {
+                      {productList.map((product) => {
                         const isLowStock = getStockStatus(product) !== 'ok'
                         return (
                           <tr
@@ -706,7 +758,7 @@ export default function AdminDashboard({
 
                 {/* Mobile Card View */}
                 <div className="lg:hidden">
-                  {filteredProducts.map((product) => {
+                  {productList.map((product) => {
                     const isLowStock = getStockStatus(product) !== 'ok'
                     return (
                       <article
@@ -780,8 +832,17 @@ export default function AdminDashboard({
                         <Package className="w-12 h-12 text-text-secondary-light dark:text-text-secondary-dark" />
                       </div>
                     </div>
-                    <p className="text-body text-text-secondary-light dark:text-text-secondary-dark">No hay productos todavía</p>
-                    <p className="text-caption text-text-secondary-light/70 dark:text-text-secondary-dark/70 mt-1">Agregá tu primer producto</p>
+                    {activeSearch ? (
+                      <>
+                        <p className="text-body text-text-secondary-light dark:text-text-secondary-dark">No se encontraron productos para &ldquo;{activeSearch}&rdquo;</p>
+                        <p className="text-caption text-text-secondary-light/70 dark:text-text-secondary-dark/70 mt-1">Probá con otra palabra o parte del nombre</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-body text-text-secondary-light dark:text-text-secondary-dark">No hay productos todavía</p>
+                        <p className="text-caption text-text-secondary-light/70 dark:text-text-secondary-dark/70 mt-1">Agregá tu primer producto</p>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -789,11 +850,11 @@ export default function AdminDashboard({
                 {totalPages > 1 && (
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6 py-4 border-t border-surface-light dark:border-dark-200">
                     <p className="text-caption text-text-secondary-light dark:text-text-secondary-dark text-center sm:text-left">
-                      Página {currentPage} de {totalPages} ({totalProducts} productos)
+                      Página {currentPage} de {totalPages} ({totalProducts} {activeSearch ? 'resultados' : 'productos'})
                     </p>
                     <div className="flex items-center gap-2">
                       <Link
-                        href={currentPage > 1 ? `?page=${currentPage - 1}` : '#'}
+                        href={currentPage > 1 ? pageHref(currentPage - 1) : '#'}
                         className={`btn-ghost flex items-center gap-1.5 touch-target px-3 py-2 ${currentPage <= 1 ? 'pointer-events-none opacity-50' : ''}`}
                         aria-disabled={currentPage <= 1}
                         aria-label="Página anterior"
@@ -802,7 +863,7 @@ export default function AdminDashboard({
                         <span className="hidden sm:inline">Anterior</span>
                       </Link>
                       <Link
-                        href={currentPage < totalPages ? `?page=${currentPage + 1}` : '#'}
+                        href={currentPage < totalPages ? pageHref(currentPage + 1) : '#'}
                         className={`btn-ghost flex items-center gap-1.5 touch-target px-3 py-2 ${currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''}`}
                         aria-disabled={currentPage >= totalPages}
                         aria-label="Página siguiente"
